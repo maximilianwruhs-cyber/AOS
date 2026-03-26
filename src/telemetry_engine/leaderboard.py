@@ -1,11 +1,13 @@
 """
-Obolus — Persistent Mutation Leaderboard
+AOS — Persistent Mutation Leaderboard
 Tracks top-performing mutations across evolutionary runs.
 """
 import json
+import sys
 from pathlib import Path
 from datetime import datetime
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 
 
@@ -62,7 +64,7 @@ class MutationLeaderboard:
             return
 
         print(f"\n{'='*70}")
-        print(f"  OBOLUS MUTATION LEADERBOARD — Top {n}")
+        print(f"  AOS MUTATION LEADERBOARD — Top {n}")
         print(f"{'='*70}")
         print(f"  {'#':<3} {'Agent':<15} {'z-score':>8} {'Q':>6} {'E':>6} {'V':>6} {'OK':>4} {'Gen':>4}")
         print(f"  {'─'*3} {'─'*15} {'─'*8} {'─'*6} {'─'*6} {'─'*6} {'─'*4} {'─'*4}")

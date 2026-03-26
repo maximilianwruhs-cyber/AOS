@@ -1,72 +1,150 @@
 #!/usr/bin/env python3
 """
-AgenticOS (AOS) - Sovereign Daemon
-The core operating loop for managing local LLM compute and hardware telemetry.
+AgenticOS (AOS) - Reactive Sovereign Gateway
+Routes OpenAI-compatible API requests dynamically based on payload complexity.
 """
 import time
 import sys
+import asyncio
+import json
+from pathlib import Path
+from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import JSONResponse, StreamingResponse
+import httpx
+import uvicorn
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
 from tools.vram_manager import swap_model
-from tools.hardware_telemetry import run_telemetry
+from config import DEFAULT_MODEL
+from telemetry_engine.market_broker import select_best_model, log_inference
+
+app = FastAPI(title="AOS Reactive Gateway", version="3.0.0")
+
+TINY_MODEL = DEFAULT_MODEL
+HEAVY_MODEL = "deepseek-coder-33b-instruct"
+LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
+
+# State tracking
+CURRENT_MODEL = None
+IDLE_COOLDOWN_SECONDS = 300  # 5 minutes
 
 def log(msg):
-    print(f"[AOS-DAEMON] {msg}")
+    print(f"[AOS-GATEWAY] {msg}")
 
-def main():
-    print(f"\n{'='*60}")
-    print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN NODE")
-    print(f"  Powered by Dynamic VRAM Routing & Intelligence-per-Watt")
-    print(f"{'='*60}\n")
+def assess_complexity(messages: list) -> str:
+    """Triage the payload complexity."""
+    full_text = " ".join([m.get("content", "") for m in messages if isinstance(m.get("content"), str)])
     
-    # Define models available in LM Studio's models directory
-    TINY_MODEL = "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"
-    HEAVY_MODEL = "deepseek-coder-33b-instruct.Q5_K_M.gguf"
+    # Heuristics for heavy model
+    heavy_keywords = ["write code", "analyze", "explain", "python", "javascript", "c++", "refactor", "debug", "architect"]
     
-    log("Status: Boot Sequence Initiated.")
-    
-    # 1. Start with the Tiny Model to save power
-    log(f"Routing to Lightweight Compute Node...")
-    
-    # Wait for LM Studio Engine to mount 
-    import requests
-    log("Waiting for LM Studio Engine API (Port 1234) to bind...")
-    for _ in range(30):
-        try:
-            requests.get("http://127.0.0.1:1234/v1/models", timeout=2)
-            log("LM Studio Engine successfully bound.")
-            break
-        except:
-            time.sleep(2)
+    if len(full_text) > 1000:
+        return "heavy"
+        
+    for kw in heavy_keywords:
+        if kw in full_text.lower():
+            return "heavy"
             
-    if not swap_model(TINY_MODEL):
-        log("LM Studio unavailable or swap failed. Ensure the server is mounted.")
-        sys.exit(1)
+    return "tiny"
+
+async def cooldown_task():
+    """Swaps back to tiny model after IDLE_COOLDOWN_SECONDS of inactivity."""
+    global CURRENT_MODEL
+    log(f"Cooldown initiated. Waiting {IDLE_COOLDOWN_SECONDS}s...")
+    await asyncio.sleep(IDLE_COOLDOWN_SECONDS)
+    log(f"Cooldown complete. System idle. Reverting to {TINY_MODEL}.")
+    if swap_model(TINY_MODEL):
+        CURRENT_MODEL = TINY_MODEL
+
+async def shadow_evaluation(model: str, complexity: str):
+    """Background task to grade the response and track bounds asynchronously."""
+    import random
+    # In a full production deployment, this invokes an LLM-as-judge loop 
+    # to read the last N prompts. For convergence simulation:
+    log("Running Shadow Evaluator...")
+    simulated_joules = 50.0 if model == TINY_MODEL else 250.0
+    quality = random.uniform(0.8, 1.0)
+    
+    # Tiny model flounders on heavy code tasks, degrading its z-score over time
+    if model == TINY_MODEL and complexity == "heavy":
+        quality = random.uniform(0.2, 0.5)
         
-    log("Lightweight model deployed for background tasks (heartbeat monitoring).")
-    time.sleep(2)
-    
-    # 2. Simulate User escalation
-    log("\n[!] ESCALATION: Complex workload detected.")
-    log(f"Decision: {TINY_MODEL} insufficient. Swapping to Heavy Compute Node.")
-    
-    # 3. Swap physically to the big model
-    time.sleep(1)
-    if swap_model(HEAVY_MODEL):
-        log(f"Heavy Compute Node ({HEAVY_MODEL}) online.")
-        time.sleep(2)
-    else:
-        log(f"Failed to load Heavy Compute Node.")
-        
-    # 4. Benchmarking the new model
-    log("\n[!] TELEMETRY: Validating compute node via hardware telemetry.")
-    run_telemetry(HEAVY_MODEL, suite="math")
-    
-    # 5. Cool down
-    log("\n[!] SYSTEM IDLE: Cooling down Compute Node. Returning to Lightweight Model...")
-    swap_model(TINY_MODEL)
-    
+    log_inference(model, simulated_joules, quality)
+    log(f"Shadow Evaluator Logged: {model} | Acc: {quality:.2f} | J: {simulated_joules}")
+
+@app.on_event("startup")
+async def startup_event():
+    global CURRENT_MODEL
     print(f"\n{'='*60}")
-    print(f"  ✅ AOS Workflow Complete. Returning to standby.")
+    print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN GATEWAY")
+    print(f"  Listening on Port 8000 | Backend: Port 1234")
     print(f"{'='*60}\n")
+    log(f"Pre-loading idle model: {TINY_MODEL}")
+    if swap_model(TINY_MODEL):
+        CURRENT_MODEL = TINY_MODEL
+    else:
+        log("WARNING: Failed to preload TINY_MODEL. LM Studio might be down.")
+
+@app.get("/v1/models")
+async def get_models():
+    """Proxy the models endpoint from LM Studio to the client."""
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{LM_STUDIO_URL}/models", timeout=5.0)
+            return JSONResponse(status_code=resp.status_code, content=resp.json())
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": f"Backend offline: {e}"})
+
+@app.post("/v1/chat/completions")
+async def chat_completions(request: Request, background_tasks: BackgroundTasks):
+    global CURRENT_MODEL
+    payload = await request.json()
+    messages = payload.get("messages", [])
+    
+    # 1. Triage
+    complexity = assess_complexity(messages)
+    try:
+        target_model = select_best_model(complexity, TINY_MODEL, HEAVY_MODEL)
+    except Exception as e:
+        log(f"Market Broker failed: {e}. Defaulting to static escalation.")
+        target_model = HEAVY_MODEL if complexity == "heavy" else TINY_MODEL
+    
+    log(f"Incoming Request | Complexity: {complexity.upper()} | Target: {target_model}")
+    
+    # 2. VRAM Swap if needed
+    if CURRENT_MODEL != target_model:
+        log(f"Swapping VRAM [{CURRENT_MODEL} -> {target_model}]...")
+        if swap_model(target_model):
+            CURRENT_MODEL = target_model
+        else:
+            log("Swap failed. Proceeding with current model.")
+            
+    # Modify payload model to match the hardware backend's expected name if strict
+    payload["model"] = CURRENT_MODEL
+    
+    # 3. Forward to backend
+    async def forward_stream():
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            async with client.stream("POST", f"{LM_STUDIO_URL}/chat/completions", json=payload) as response:
+                async for chunk in response.aiter_bytes():
+                    yield chunk
+
+    # Handle streaming vs non-streaming
+    if payload.get("stream", False):
+        background_tasks.add_task(cooldown_task)
+        background_tasks.add_task(shadow_evaluation, target_model, complexity)
+        return StreamingResponse(forward_stream(), media_type="text/event-stream")
+    else:
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            try:
+                resp = await client.post(f"{LM_STUDIO_URL}/chat/completions", json=payload)
+                background_tasks.add_task(cooldown_task)
+                background_tasks.add_task(shadow_evaluation, target_model, complexity)
+                return JSONResponse(status_code=resp.status_code, content=resp.json())
+            except Exception as e:
+                return JSONResponse(status_code=500, content={"error": f"Backend failed: {e}"})
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("aos_daemon:app", host="0.0.0.0", port=8000, reload=False)

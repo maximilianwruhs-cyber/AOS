@@ -1,1 +1,5 @@
 requests
+psutil
+python-dotenv
+fastapi
+uvicorn

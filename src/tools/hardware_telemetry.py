@@ -17,7 +17,6 @@ def run_telemetry(model_name: str, suite: str = "math"):
         run_benchmark(
             model=model_name,
             suite=suite,
-            ollama_url="http://localhost:11434",
             temperature=0.3,
             verbose=True
         )

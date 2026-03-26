@@ -131,41 +131,9 @@
         executable: "{{ aos_dir }}/.venv/bin/pip"
       become_user: "{{ real_user }}"
 
-    # 3.5 RESOURCE REPOSITORIES (Public APIs, Hugging Face, LangChain, Deep Learning)
-    - name: 📚 Clone Free API Resources (public-apis)
-      git:
-        repo: "https://github.com/public-apis/public-apis.git"
-        dest: "/home/{{ real_user }}/public-apis"
-        update: yes
-      become_user: "{{ real_user }}"
+    # 3.5 RESOURCE REPOSITORIES
+    # (Removed bloated repo clones as per architectural review)
 
-    - name: 📚 Clone Hugging Face Transformers
-      git:
-        repo: "https://github.com/huggingface/transformers.git"
-        dest: "/home/{{ real_user }}/transformers"
-        update: yes
-      become_user: "{{ real_user }}"
-
-    - name: 🧠 Clone LangChain Ecosystem
-      git:
-        repo: "https://github.com/langchain-ai/langchain.git"
-        dest: "/home/{{ real_user }}/langchain"
-        update: yes
-      become_user: "{{ real_user }}"
-
-    - name: 🔥 Clone PyTorch Deep Learning Framework
-      git:
-        repo: "https://github.com/pytorch/pytorch.git"
-        dest: "/home/{{ real_user }}/pytorch"
-        update: yes
-      become_user: "{{ real_user }}"
-
-    - name: 📊 Clone TensorFlow Deep Learning Framework
-      git:
-        repo: "https://github.com/tensorflow/tensorflow.git"
-        dest: "/home/{{ real_user }}/tensorflow"
-        update: yes
-      become_user: "{{ real_user }}"
 
     # 4. AOS SOVEREIGN DAEMON (SYSTEMD)
     - name: ⚙️ Create AOS Chief of Staff Daemon

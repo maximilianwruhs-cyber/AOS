@@ -1,11 +1,14 @@
 """
-Obolus — Model Discovery
+AOS — Model Discovery
 Auto-discovers locally available Ollama models for multi-model competition.
 """
 import requests
+import sys
 from dataclasses import dataclass
 from typing import List, Optional
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
 
 
@@ -37,21 +40,22 @@ def discover_models(ollama_url: str = None, exclude_embeddings: bool = True) -> 
     """
     url = ollama_url or config.OLLAMA_URL
     try:
-        resp = requests.get(f"{url}/api/tags", timeout=10)
+        resp = requests.get(f"{url}/models", timeout=10)
         data = resp.json()
     except Exception as e:
-        print(f"  [DISCOVERY] Failed to reach Ollama at {url}: {e}")
+        print(f"  [DISCOVERY] Failed to reach LM Studio at {url}: {e}")
         return []
 
     models = []
-    for m in data.get("models", []):
-        details = m.get("details", {})
+    for m in data.get("data", []):
+        name = m.get("id", "unknown")
+        # OpenAI format doesn't natively expose params/quant as cleanly, we parse from ID if possible
         info = ModelInfo(
-            name=m["name"],
-            size_bytes=m.get("size", 0),
-            parameter_size=details.get("parameter_size", "unknown"),
-            family=details.get("family", "unknown"),
-            quantization=details.get("quantization_level", "unknown"),
+            name=name,
+            size_bytes=m.get("size", 0) if "size" in m else 0, # Often zero in simple API
+            parameter_size="unknown",
+            family="unknown",
+            quantization="unknown",
         )
 
         if exclude_embeddings and info.is_embedding:

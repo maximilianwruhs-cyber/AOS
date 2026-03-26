@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Obolus Benchmark — Runner
+AOS Benchmark — Runner
 Orchestrates benchmark runs: sends tasks to models, measures energy, scores output.
 """
 import sys
@@ -14,10 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import config
 import requests
-from src.benchmark.task_suite import get_suite, list_suites
-from src.benchmark.evaluator import score_task
-from src.benchmark.energy_meter import EnergyMeter
-from src.benchmark.awattar import get_price_or_default
+from telemetry_engine.task_suite import get_suite, list_suites
+from telemetry_engine.evaluator import score_task
+from telemetry_engine.energy_meter import EnergyMeter
+from telemetry_engine.awattar import get_price_or_default
 
 
 def infer(model: str, prompt: str, ollama_url: str, temperature: float = 0.3) -> tuple[str, int, float]:
@@ -25,15 +25,23 @@ def infer(model: str, prompt: str, ollama_url: str, temperature: float = 0.3) ->
     start = time.time()
     try:
         resp = requests.post(
-            f"{ollama_url}/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False,
-                  "options": {"temperature": temperature, "num_predict": 256}},
+            f"{ollama_url}/chat/completions",
+            json={
+                "model": model, 
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": temperature, 
+                "max_tokens": 256
+            },
             timeout=120,
         )
         data = resp.json()
         elapsed = time.time() - start
-        output = data.get("response", "")
-        tokens = data.get("eval_count", len(output.split()))
+        
+        choices = data.get("choices", [])
+        output = choices[0].get("message", {}).get("content", "") if choices else ""
+        usage = data.get("usage", {})
+        tokens = usage.get("total_tokens", len(output.split()))
+        
         return output, tokens, elapsed
     except Exception as e:
         return f"ERROR: {e}", 0, time.time() - start
@@ -50,7 +58,7 @@ def run_benchmark(model: str, suite: str = "full", ollama_url: str = None,
 
     if verbose:
         print(f"\n{'='*60}")
-        print(f"  OBOLUS BENCHMARK — {model}")
+        print(f"  AOS BENCHMARK — {model}")
         print(f"  Suite: {suite} ({len(tasks)} tasks) | {timestamp}")
         print(f"  Energy: {'RAPL (real watts)' if meter.rapl_available else 'estimate (no RAPL)'}")
         print(f"  Electricity: {price_c_kwh:.1f} ¢/kWh")
@@ -184,7 +192,7 @@ def compare_models(results_path: str = None):
         results = json.load(f)
 
     print(f"\n{'='*80}")
-    print(f"  OBOLUS LEADERBOARD — Intelligence per Watt")
+    print(f"  AOS LEADERBOARD — Intelligence per Watt")
     print(f"{'='*80}")
     print(f"  {'Model':<22} {'Quality':>8} {'Energy':>8} {'z (Q/J)':>9} {'J/tok':>7} {'Suite':<6} {'When'}")
     print(f"  {'─'*22} {'─'*8} {'─'*8} {'─'*9} {'─'*7} {'─'*6} {'─'*19}")
@@ -200,7 +208,7 @@ def compare_models(results_path: str = None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Obolus Benchmark Runner")
+    parser = argparse.ArgumentParser(description="AOS Benchmark Runner")
     sub = parser.add_subparsers(dest="command")
 
     bench = sub.add_parser("bench", help="Run benchmark")

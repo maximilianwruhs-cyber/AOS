@@ -1,5 +1,5 @@
 """
-Obolus — Energy Meter
+AOS — Energy Meter
 Measures real energy consumption per inference via Intel RAPL or psutil fallback.
 """
 import os

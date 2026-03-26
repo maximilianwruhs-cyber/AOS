@@ -1,32 +1,24 @@
 #!/usr/bin/env python3
-"""GZMO Watchdog - LOCAL ONLY EDITION. Slim and efficient."""
+"""AOS Watchdog - LOCAL ONLY EDITION. Slim and efficient."""
 import subprocess
 import os
 import glob
 from datetime import datetime
 
 # CONFIG
-WORKSPACE = "/home/nikian/.openclaw/workspace"
+WORKSPACE = "/home/maximilian-wruhs/Dokumente/Projekt GZMO + Obolus/AOS"
 TOKEN_WARNING_THRESHOLD = 50    # 50k tokens
 TOKEN_CRITICAL_THRESHOLD = 150  # 150k tokens
 
 def check_token_usage() -> int:
     """Token Efficiency Audit."""
     print("Watchdog: Checking Token Efficiency...")
+    # NOTE: In AOS, token usage is tracked by the telemetry_engine.
+    # This is a stub for future integration.
     used_k = 0
     try:
-        output = subprocess.check_output(["/usr/bin/openclaw", "status"]).decode()
-        for line in output.splitlines():
-            if "agent:main:main" in line:
-                parts = line.split("│")
-                if len(parts) >= 6:
-                    tokens = parts[5].strip()
-                    if "k/" in tokens:
-                        used_str = tokens.split("k/")[0]
-                        if used_str.isdigit():
-                            used_k = int(used_str)
-                            if used_k > TOKEN_WARNING_THRESHOLD:
-                                print(f"Watchdog WARNING: High token usage ({used_k}k).")
+        # Placeholder for actual AOS token tracking logic
+        pass
     except Exception as e:
         print(f"Watchdog Token Check Error: {e}")
     return used_k
@@ -46,12 +38,12 @@ def check_integrity():
 
 if __name__ == "__main__":
     print(f"\n{'='*60}")
-    print(f"  GZMO LOCAL WATCHDOG — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"  AOS LOCAL WATCHDOG — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
 
     check_token_usage()
     check_integrity()
 
     print(f"\n{'='*60}")
-    print(f"  GOD MODE WATCHDOG COMPLETE")
+    print(f"  AOS WATCHDOG COMPLETE")
     print(f"{'='*60}\n")

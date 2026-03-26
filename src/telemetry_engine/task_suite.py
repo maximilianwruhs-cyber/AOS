@@ -1,5 +1,5 @@
 """
-Obolus Benchmark — Task Suite
+AOS Benchmark — Task Suite
 Curated, verifiable tasks with known-correct answers.
 """
 import random

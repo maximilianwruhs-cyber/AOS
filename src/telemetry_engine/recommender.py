@@ -1,15 +1,17 @@
 """
-Obolus — Recommender
+AOS — Recommender
 Analyzes benchmark results to recommend the best model per task type
 and project costs at different scales using LIVE electricity pricing.
 """
 import json
+import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import config
-from src.benchmark.awattar import get_current_price_c_kwh, get_price_or_default
+from telemetry_engine.awattar import get_current_price_c_kwh, get_price_or_default
 
 
 # Cloud API reference costs (USD per 1M tokens, approximate 2026 pricing)
@@ -145,7 +147,7 @@ def print_recommendation(rec: dict = None):
     """Pretty-print the recommendation with live energy pricing."""
     rec = rec or recommend()
     if not rec:
-        print("\n  No benchmark results found. Run `obulus bench --model <model> --suite full` first.\n")
+        print("\n  No benchmark results found. Run `aos bench --model <model> --suite full` first.\n")
         return
 
     best = rec["best_overall"]
@@ -161,7 +163,7 @@ def print_recommendation(rec: dict = None):
 
     print()
     print(f"  ╔{'═'*62}╗")
-    print(f"  ║  OBOLUS RECOMMENDATION — Your Hardware Profile{' '*14}║")
+    print(f"  ║  AOS RECOMMENDATION — Your Hardware Profile{' '*17}║")
     print(f"  ╠{'═'*62}╣")
     print(f"  ║{' '*62}║")
     print(f"  ║  {price_icon} Electricity: {price_label:<20}  {timestamp[:19]:<20} ║")

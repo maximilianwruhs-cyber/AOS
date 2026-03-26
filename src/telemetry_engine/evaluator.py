@@ -1,5 +1,5 @@
 """
-Obolus Benchmark — Evaluator
+AOS Benchmark — Evaluator
 Scores model outputs against verifiable ground truth.
 """
 import re
@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import config
-from src.simulation.sandbox_executor import SandboxExecutor
+from simulation.sandbox_executor import SandboxExecutor
 
 import requests
 
@@ -80,12 +80,16 @@ def score_reasoning(output: str, rubric: str, judge_url: str = None, judge_model
 
     try:
         resp = requests.post(
-            f"{judge_url}/api/generate",
-            json={"model": judge_model, "prompt": judge_prompt, "stream": False,
-                  "options": {"num_predict": 10, "temperature": 0.1}},
+            f"{judge_url}/chat/completions",
+            json={
+                "model": judge_model, 
+                "messages": [{"role": "user", "content": judge_prompt}],
+                "temperature": 0.1,
+                "max_tokens": 10
+            },
             timeout=30,
         )
-        text = resp.json().get("response", "0.0")
+        text = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "0.0")
         m = re.search(r'([0-1]\.\d+|[01])', text)
         return float(m.group(1)) if m else 0.0
     except Exception:

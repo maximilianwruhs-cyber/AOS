@@ -1,5 +1,5 @@
 """
-Obolus — AWattar Electricity Price Bridge
+AOS — AWattar Electricity Price Bridge
 Fetches current spot price from AWattar AT API.
 Used to weight z-score by real energy cost.
 """

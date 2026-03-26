@@ -1,5 +1,5 @@
 """
-Obolus — Evolutionary Fitness Scorer
+AOS — Evolutionary Fitness Scorer
 Minimal, production-ready scoring engine for mutation approval.
 Based on the "Final Idea" specification.
 
