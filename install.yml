@@ -6,9 +6,12 @@
     aos_dir: "{{ playbook_dir }}"
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
     lm_studio_url: "https://releases.lmstudio.ai/linux/x86_64/0.3.14/LM-Studio-0.3.14-x86_64.AppImage"
+    deploy_mode: "{{ mode | default('online') }}"  # 'online' or 'iso'
 
   tasks:
+    # ============================================================
     # 1. BASELINE INFRASTRUCTURE & PERMISSIONS
+    # ============================================================
     - name: 📦 Install baseline dependencies
       apt:
         name: 
@@ -19,8 +22,11 @@
           - linux-tools-generic
           - python3-pip
           - xvfb
+          - nodejs
+          - npm
         state: present
         update_cache: yes
+      when: deploy_mode == 'online'
 
     - name: ⚡ Check Intel RAPL powercap directory
       stat:
@@ -33,31 +39,9 @@
         mode: '0444'
       when: rapl_stat.stat.exists
 
-    # 1.5 USER SPACE TOOLS (Chrome, Gemini CLI, AnythingLLM)
-    - name: 🌐 Download and Install Google Chrome
-      apt:
-        deb: "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-        state: present
-
-    - name: 🛠️ Install NodeJS and NPM for modern CLIs
-      apt:
-        name:
-          - nodejs
-          - npm
-        state: present
-
-    - name: 🌌 Install Gemini CLI
-      npm:
-        name: "@google/gemini-cli"
-        global: yes
-      ignore_errors: yes
-
-    - name: 🧠 Install AnythingLLM (AnythingCLI)
-      shell: curl -fsSL https://s3.us-west-1.amazonaws.com/public.useanything.com/latest/installer.sh | sh
-      become_user: "{{ real_user }}"
-      ignore_errors: yes
-
+    # ============================================================
     # 2. AI ENGINE LAYER (OLLAMA & LM STUDIO)
+    # ============================================================
     - name: 🧠 Check if Ollama is installed
       stat:
         path: /usr/local/bin/ollama
@@ -65,7 +49,7 @@
 
     - name: 📡 Install Ollama
       shell: curl -fsSL https://ollama.com/install.sh | sh
-      when: not ollama_stat.stat.exists
+      when: deploy_mode == 'online' and not ollama_stat.stat.exists
 
     - name: ⬇️ Download LM Studio AppImage
       get_url:
@@ -74,6 +58,7 @@
         mode: '0755'
         owner: "{{ real_user }}"
       ignore_errors: yes
+      when: deploy_mode == 'online'
 
     - name: 🧮 Hardware Profiling (Detect System RAM)
       set_fact:
@@ -86,12 +71,13 @@
           deepseek-coder-33b-instruct
           {% endif %}
 
-    - name: 🧠 Auto-Download Optimized Baseline Model ({{ baseline_model }})
+    - name: 🧠 Auto-Download Baseline Model via LM Studio
       command: /home/{{ real_user }}/LM_Studio.AppImage get {{ baseline_model }}
       environment:
         APPIMAGE_EXTRACT_AND_RUN: "1"
       become_user: "{{ real_user }}"
       ignore_errors: yes
+      when: deploy_mode == 'online'
 
     - name: ⚙️ Create LM Studio Headless Daemon
       copy:
@@ -118,8 +104,11 @@
         daemon_reload: yes
         enabled: yes
         state: started
+      ignore_errors: yes
 
+    # ============================================================
     # 3. AOS PYTHON ENVIRONMENT
+    # ============================================================
     - name: 🐍 Setup AOS Virtual Environment
       command: python3 -m venv .venv
       args:
@@ -132,12 +121,45 @@
         requirements: "{{ aos_dir }}/requirements.txt"
         executable: "{{ aos_dir }}/.venv/bin/pip"
       become_user: "{{ real_user }}"
+      when: deploy_mode == 'online'
 
-    # 3.5 RESOURCE REPOSITORIES
-    # (Removed bloated repo clones as per architectural review)
+    # ============================================================
+    # 4. AGENTIC TOOLING (Gemini CLI, CLI-Anything, OpenClaw)
+    # ============================================================
+    - name: 🌌 Install Gemini CLI
+      npm:
+        name: "@google/gemini-cli"
+        global: yes
+      ignore_errors: yes
+      when: deploy_mode == 'online'
 
+    - name: 🐾 Install OpenClaw
+      npm:
+        name: "openclaw"
+        global: yes
+      ignore_errors: yes
+      when: deploy_mode == 'online'
 
-    # 4. AOS SOVEREIGN DAEMON (SYSTEMD)
+    - name: 🔧 Clone CLI-Anything framework
+      git:
+        repo: "https://github.com/HKUDS/CLI-Anything.git"
+        dest: "/home/{{ real_user }}/CLI-Anything"
+        version: main
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    - name: 📦 Install CLI-Anything dependencies
+      pip:
+        requirements: "/home/{{ real_user }}/CLI-Anything/requirements.txt"
+        executable: "{{ aos_dir }}/.venv/bin/pip"
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    # ============================================================
+    # 5. AOS SOVEREIGN DAEMON (SYSTEMD)
+    # ============================================================
     - name: ⚙️ Create AOS Chief of Staff Daemon
       copy:
         dest: /etc/systemd/system/aos-core.service
