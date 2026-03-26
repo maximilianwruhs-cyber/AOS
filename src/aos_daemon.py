@@ -8,6 +8,7 @@ import sys
 import asyncio
 import json
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
@@ -21,37 +22,32 @@ from config import DEFAULT_MODEL, ACTIVE_BACKEND_URL, FALLBACK_BACKEND_URL, ACTI
 from config import switch_active_host, list_hosts, load_remote_hosts
 from telemetry_engine.market_broker import select_best_model, log_inference
 
-app = FastAPI(title="AOS Reactive Gateway", version="4.0.0")
-
+# ─── Constants & State ────────────────────────────────────────────────────────
 TINY_MODEL = "qwen2.5-0.5b-instruct"
 HEAVY_MODEL = "qwen/qwen3.5-35b-a3b"
 LM_STUDIO_URL = ACTIVE_BACKEND_URL
 
-# State tracking
 CURRENT_MODEL = None
 IDLE_COOLDOWN_SECONDS = 300  # 5 minutes
+_cooldown_handle: asyncio.Task | None = None  # debounce handle
 
 def log(msg):
     print(f"[AOS-GATEWAY] {msg}")
 
+# ─── Helper Functions ─────────────────────────────────────────────────────────
 def assess_complexity(messages: list) -> str:
     """Triage the payload complexity."""
     full_text = " ".join([m.get("content", "") for m in messages if isinstance(m.get("content"), str)])
-    
-    # Heuristics for heavy model
     heavy_keywords = ["write code", "analyze", "explain", "python", "javascript", "c++", "refactor", "debug", "architect"]
-    
     if len(full_text) > 1000:
         return "heavy"
-        
     for kw in heavy_keywords:
         if kw in full_text.lower():
             return "heavy"
-            
     return "tiny"
 
-async def cooldown_task():
-    """Swaps back to tiny model after IDLE_COOLDOWN_SECONDS of inactivity."""
+async def _do_cooldown():
+    """Internal: waits then reverts to tiny model."""
     global CURRENT_MODEL
     log(f"Cooldown initiated. Waiting {IDLE_COOLDOWN_SECONDS}s...")
     await asyncio.sleep(IDLE_COOLDOWN_SECONDS)
@@ -59,24 +55,28 @@ async def cooldown_task():
     if swap_model(TINY_MODEL):
         CURRENT_MODEL = TINY_MODEL
 
+def schedule_cooldown():
+    """Debounced cooldown: cancels previous timer before starting a new one."""
+    global _cooldown_handle
+    if _cooldown_handle and not _cooldown_handle.done():
+        _cooldown_handle.cancel()
+    _cooldown_handle = asyncio.create_task(_do_cooldown())
+
 async def shadow_evaluation(model: str, complexity: str):
     """Background task to grade the response and track bounds asynchronously."""
     import random
-    # In a full production deployment, this invokes an LLM-as-judge loop 
-    # to read the last N prompts. For convergence simulation:
     log("Running Shadow Evaluator...")
     simulated_joules = 50.0 if model == TINY_MODEL else 250.0
     quality = random.uniform(0.8, 1.0)
-    
-    # Tiny model flounders on heavy code tasks, degrading its z-score over time
     if model == TINY_MODEL and complexity == "heavy":
         quality = random.uniform(0.2, 0.5)
-        
     log_inference(model, simulated_joules, quality)
     log(f"Shadow Evaluator Logged: {model} | Acc: {quality:.2f} | J: {simulated_joules}")
 
-@app.on_event("startup")
-async def startup_event():
+# ─── Lifespan ─────────────────────────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app):
+    """Startup and shutdown logic for the AOS Gateway."""
     global CURRENT_MODEL
     print(f"\n{'='*60}")
     print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN GATEWAY")
@@ -88,6 +88,28 @@ async def startup_event():
         CURRENT_MODEL = TINY_MODEL
     else:
         log("WARNING: Failed to preload TINY_MODEL. LM Studio might be down.")
+    yield
+    log("Shutting down AOS Gateway.")
+
+app = FastAPI(title="AOS Reactive Gateway", version="4.1.0", lifespan=lifespan)
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring."""
+    backend_ok = False
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{LM_STUDIO_URL}/models", timeout=3.0)
+            backend_ok = resp.status_code == 200
+    except Exception:
+        pass
+    return JSONResponse(content={
+        "status": "healthy",
+        "current_model": CURRENT_MODEL,
+        "active_host": ACTIVE_HOST_KEY,
+        "backend_url": LM_STUDIO_URL,
+        "backend_reachable": backend_ok,
+    })
 
 @app.get("/v1/hosts")
 async def get_hosts():
@@ -154,14 +176,14 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks):
 
     # Handle streaming vs non-streaming
     if payload.get("stream", False):
-        background_tasks.add_task(cooldown_task)
+        schedule_cooldown()
         background_tasks.add_task(shadow_evaluation, target_model, complexity)
         return StreamingResponse(forward_stream(), media_type="text/event-stream")
     else:
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
                 resp = await client.post(f"{LM_STUDIO_URL}/chat/completions", json=payload)
-                background_tasks.add_task(cooldown_task)
+                schedule_cooldown()
                 background_tasks.add_task(shadow_evaluation, target_model, complexity)
                 return JSONResponse(status_code=resp.status_code, content=resp.json())
             except Exception as e:
@@ -169,3 +191,4 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks):
 
 if __name__ == "__main__":
     uvicorn.run("aos_daemon:app", host="0.0.0.0", port=8000, reload=False)
+

@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
 AOS VRAM Manager
-Unloads current models and assigns target models to LM Studio API.
+Unloads current models and assigns target models to the active LLM backend.
 """
 import requests
 import sys
+from pathlib import Path
 
-LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import ACTIVE_BACKEND_URL
+
+LM_STUDIO_URL = ACTIVE_BACKEND_URL
 
 def swap_model(target_model_name: str, gpu_offload: str = "max", ctx_len: int = 8192) -> bool:
     print(f"🔄 [VRAM-MANAGER] Requesting swap to: {target_model_name}")
