@@ -5,7 +5,7 @@
   vars:
     aos_dir: "{{ playbook_dir }}"
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
-    lm_studio_url: "https://releases.lmstudio.ai/linux/x86/latest/LM_Studio-linux.AppImage"
+    lm_studio_url: "https://releases.lmstudio.ai/linux/x86_64/0.3.14/LM-Studio-0.3.14-x86_64.AppImage"
 
   tasks:
     # 1. BASELINE INFRASTRUCTURE & PERMISSIONS
@@ -13,6 +13,7 @@
       apt:
         name: 
           - git
+          - curl
           - python3.12-venv
           - libfuse2
           - linux-tools-generic
@@ -47,7 +48,7 @@
 
     - name: 🌌 Install Gemini CLI
       npm:
-        name: "@google/generative-ai-cli"
+        name: "@google/gemini-cli"
         global: yes
       ignore_errors: yes
 
@@ -72,6 +73,7 @@
         dest: "/home/{{ real_user }}/LM_Studio.AppImage"
         mode: '0755'
         owner: "{{ real_user }}"
+      ignore_errors: yes
 
     - name: 🧮 Hardware Profiling (Detect System RAM)
       set_fact:
