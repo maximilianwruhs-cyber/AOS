@@ -22,8 +22,6 @@
           - linux-tools-generic
           - python3-pip
           - xvfb
-          - nodejs
-          - npm
         state: present
         update_cache: yes
       when: deploy_mode == 'online'
