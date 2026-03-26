@@ -1,0 +1,358 @@
+[
+  {
+    "model": "qwen2.5-coder:7b",
+    "suite": "math",
+    "timestamp": "2026-03-25T14:06:02.424753",
+    "temperature": 0.3,
+    "total_tasks": 15,
+    "avg_quality": 0.8667,
+    "total_tokens": 292,
+    "avg_tokens_per_task": 19.5,
+    "total_time_s": 19.4,
+    "tokens_per_second": 15.1,
+    "total_joules": 48.0468,
+    "joules_per_token": 0.164544,
+    "z_score": 0.097187,
+    "obl_cost": 0.013346,
+    "eur_cost": 6.2e-07,
+    "electricity_c_kwh": 4.64,
+    "energy_source": "estimate",
+    "scores_by_type": {
+      "math": {
+        "avg_score": 0.8667,
+        "count": 15,
+        "total_tokens": 292
+      }
+    },
+    "results": [
+      {
+        "task_id": "math_001",
+        "type": "math",
+        "score": 0.0,
+        "tokens": 5,
+        "elapsed_s": 6.93,
+        "joules": 10.3949,
+        "watts_avg": 1.5,
+        "output_preview": "9616"
+      },
+      {
+        "task_id": "math_002",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.348,
+        "joules": 1.0644,
+        "watts_avg": 3.06,
+        "output_preview": "64"
+      },
+      {
+        "task_id": "math_003",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.383,
+        "joules": 1.12,
+        "watts_avg": 2.93,
+        "output_preview": "9801"
+      },
+      {
+        "task_id": "math_004",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.384,
+        "joules": 1.1912,
+        "watts_avg": 3.1,
+        "output_preview": "1024"
+      },
+      {
+        "task_id": "math_005",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.324,
+        "joules": 1.0007,
+        "watts_avg": 3.09,
+        "output_preview": "12"
+      },
+      {
+        "task_id": "math_006",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.39,
+        "joules": 1.1892,
+        "watts_avg": 3.05,
+        "output_preview": "1460"
+      },
+      {
+        "task_id": "math_007",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.339,
+        "joules": 1.2364,
+        "watts_avg": 3.65,
+        "output_preview": "15"
+      },
+      {
+        "task_id": "math_008",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.317,
+        "joules": 0.9518,
+        "watts_avg": 3.0,
+        "output_preview": "16"
+      },
+      {
+        "task_id": "math_009",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.347,
+        "joules": 1.0357,
+        "watts_avg": 2.98,
+        "output_preview": "391"
+      },
+      {
+        "task_id": "math_010",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.353,
+        "joules": 1.1339,
+        "watts_avg": 3.21,
+        "output_preview": "613"
+      },
+      {
+        "task_id": "math_011",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 6,
+        "elapsed_s": 0.409,
+        "joules": 1.3017,
+        "watts_avg": 3.18,
+        "output_preview": "32768"
+      },
+      {
+        "task_id": "math_012",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.392,
+        "joules": 1.1692,
+        "watts_avg": 2.98,
+        "output_preview": "5040"
+      },
+      {
+        "task_id": "math_013",
+        "type": "math",
+        "score": 0.0,
+        "tokens": 232,
+        "elapsed_s": 7.754,
+        "joules": 23.0312,
+        "watts_avg": 2.97,
+        "output_preview": "To convert the decimal \\(0.125\\) to a fraction, follow these steps:  1. **Write down the decimal**: "
+      },
+      {
+        "task_id": "math_014",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.39,
+        "joules": 1.2231,
+        "watts_avg": 3.13,
+        "output_preview": "5050"
+      },
+      {
+        "task_id": "math_015",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.341,
+        "joules": 1.0034,
+        "watts_avg": 2.94,
+        "output_preview": "243"
+      }
+    ]
+  },
+  {
+    "model": "qwen2.5-coder:1.5b",
+    "suite": "math",
+    "timestamp": "2026-03-25T14:19:57.425492",
+    "temperature": 0.3,
+    "total_tasks": 15,
+    "avg_quality": 0.8,
+    "total_tokens": 253,
+    "avg_tokens_per_task": 16.9,
+    "total_time_s": 8.74,
+    "tokens_per_second": 28.9,
+    "total_joules": 23.3501,
+    "joules_per_token": 0.092293,
+    "z_score": 0.184596,
+    "obl_cost": 0.006486,
+    "eur_cost": 3e-07,
+    "electricity_c_kwh": 4.64,
+    "energy_source": "estimate",
+    "scores_by_type": {
+      "math": {
+        "avg_score": 0.8,
+        "count": 15,
+        "total_tokens": 253
+      }
+    },
+    "results": [
+      {
+        "task_id": "math_001",
+        "type": "math",
+        "score": 0.0,
+        "tokens": 5,
+        "elapsed_s": 2.692,
+        "joules": 4.0376,
+        "watts_avg": 1.5,
+        "output_preview": "9656"
+      },
+      {
+        "task_id": "math_002",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.288,
+        "joules": 2.2394,
+        "watts_avg": 7.79,
+        "output_preview": "64"
+      },
+      {
+        "task_id": "math_003",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.274,
+        "joules": 0.8909,
+        "watts_avg": 3.25,
+        "output_preview": "9801"
+      },
+      {
+        "task_id": "math_004",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.262,
+        "joules": 0.8485,
+        "watts_avg": 3.24,
+        "output_preview": "1024"
+      },
+      {
+        "task_id": "math_005",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.24,
+        "joules": 0.739,
+        "watts_avg": 3.07,
+        "output_preview": "12"
+      },
+      {
+        "task_id": "math_006",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.26,
+        "joules": 0.7966,
+        "watts_avg": 3.06,
+        "output_preview": "1460"
+      },
+      {
+        "task_id": "math_007",
+        "type": "math",
+        "score": 0.0,
+        "tokens": 6,
+        "elapsed_s": 0.276,
+        "joules": 0.8889,
+        "watts_avg": 3.23,
+        "output_preview": "28800"
+      },
+      {
+        "task_id": "math_008",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 3,
+        "elapsed_s": 0.234,
+        "joules": 0.8532,
+        "watts_avg": 3.65,
+        "output_preview": "16"
+      },
+      {
+        "task_id": "math_009",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.257,
+        "joules": 1.0059,
+        "watts_avg": 3.92,
+        "output_preview": "391"
+      },
+      {
+        "task_id": "math_010",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.246,
+        "joules": 0.7721,
+        "watts_avg": 3.13,
+        "output_preview": "613"
+      },
+      {
+        "task_id": "math_011",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 6,
+        "elapsed_s": 0.265,
+        "joules": 0.7916,
+        "watts_avg": 2.98,
+        "output_preview": "32768"
+      },
+      {
+        "task_id": "math_012",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.256,
+        "joules": 0.8104,
+        "watts_avg": 3.17,
+        "output_preview": "5040"
+      },
+      {
+        "task_id": "math_013",
+        "type": "math",
+        "score": 0.0,
+        "tokens": 190,
+        "elapsed_s": 2.67,
+        "joules": 6.8482,
+        "watts_avg": 2.57,
+        "output_preview": "To convert the decimal \\(0.125\\) to a fraction, we can follow these steps:  1. **Write down the deci"
+      },
+      {
+        "task_id": "math_014",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 5,
+        "elapsed_s": 0.279,
+        "joules": 1.0232,
+        "watts_avg": 3.66,
+        "output_preview": "5050"
+      },
+      {
+        "task_id": "math_015",
+        "type": "math",
+        "score": 1.0,
+        "tokens": 4,
+        "elapsed_s": 0.242,
+        "joules": 0.8046,
+        "watts_avg": 3.33,
+        "output_preview": "243"
+      }
+    ]
+  }
+]

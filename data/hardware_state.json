@@ -1,0 +1,11 @@
+{
+    "timestamp": 1774071991.8842528,
+    "cpu_temp": 88.0,
+    "load_1m": 8.54,
+    "io_wait": 0.5,
+    "battery_capacity": 46.0,
+    "battery_status": "Charging",
+    "thermal_throttle": 0.5,
+    "market_price_c_kwh": 15.2,
+    "hardware_efficiency_factor": 0.01
+}

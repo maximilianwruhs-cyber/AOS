@@ -1,0 +1,261 @@
+[
+  {
+    "epoch": 1,
+    "avg_z": 8.458,
+    "avg_quality": 0.784,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 13.9599,
+        "quality": 0.8391,
+        "efficiency": 16.6367,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 1.4705,
+        "quality": 0.6673,
+        "efficiency": 2.2036,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 9.9436,
+        "quality": 0.8456,
+        "efficiency": 11.7592,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 2,
+    "avg_z": 10.4546,
+    "avg_quality": 0.7484,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 12.0977,
+        "quality": 0.8555,
+        "efficiency": 14.1411,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 9.339,
+        "quality": 0.6929,
+        "efficiency": 13.4782,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 9.9271,
+        "quality": 0.6967,
+        "efficiency": 14.2487,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 3,
+    "avg_z": 5.8051,
+    "avg_quality": 0.5763,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 8.7089,
+        "quality": 0.6744,
+        "efficiency": 12.9136,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 0.3475,
+        "quality": 0.3802,
+        "efficiency": 1.3058,
+        "variance": 0.3,
+        "approved": false,
+        "reason": "low_quality:0.380",
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 8.3588,
+        "quality": 0.6743,
+        "efficiency": 12.3962,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 4,
+    "avg_z": 7.3098,
+    "avg_quality": 0.6907,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 9.9316,
+        "quality": 0.6938,
+        "efficiency": 14.3148,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 1.8185,
+        "quality": 0.6861,
+        "efficiency": 2.6505,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 10.1794,
+        "quality": 0.6921,
+        "efficiency": 14.708,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 5,
+    "avg_z": 6.5842,
+    "avg_quality": 0.8103,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 12.5857,
+        "quality": 0.8558,
+        "efficiency": 14.7063,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 1.4659,
+        "quality": 0.734,
+        "efficiency": 1.9971,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 5.7009,
+        "quality": 0.841,
+        "efficiency": 6.7787,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 6,
+    "avg_z": 3.9205,
+    "avg_quality": 0.7237,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 5.4827,
+        "quality": 0.8353,
+        "efficiency": 6.5637,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 0.3484,
+        "quality": 0.5018,
+        "efficiency": 0.9919,
+        "variance": 0.3,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 5.9304,
+        "quality": 0.834,
+        "efficiency": 7.1108,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  },
+  {
+    "epoch": 7,
+    "avg_z": 6.2024,
+    "avg_quality": 0.5667,
+    "agents": [
+      {
+        "agent": "Alpha",
+        "z_score": 6.7397,
+        "quality": 0.8474,
+        "efficiency": 7.9534,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      },
+      {
+        "agent": "Beta",
+        "z_score": 0.0,
+        "quality": 0.0,
+        "efficiency": 1.1458,
+        "variance": 0.3,
+        "approved": false,
+        "reason": "low_quality:0.000",
+        "gen": 0
+      },
+      {
+        "agent": "Gamma",
+        "z_score": 11.8675,
+        "quality": 0.8527,
+        "efficiency": 13.9175,
+        "variance": 0.0,
+        "approved": true,
+        "reason": null,
+        "gen": 0
+      }
+    ]
+  }
+]

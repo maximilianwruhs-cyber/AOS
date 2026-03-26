@@ -1,0 +1,195 @@
+---
+- name: 🏛️ AgenticOS (AOS) Provisioning & Installation
+  hosts: localhost
+  become: yes
+  vars:
+    aos_dir: "{{ playbook_dir }}"
+    real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
+    lm_studio_url: "https://releases.lmstudio.ai/linux/x86/latest/LM_Studio-linux.AppImage"
+
+  tasks:
+    # 1. BASELINE INFRASTRUCTURE & PERMISSIONS
+    - name: 📦 Install baseline dependencies
+      apt:
+        name: 
+          - git
+          - python3.12-venv
+          - libfuse2
+          - linux-tools-generic
+          - python3-pip
+          - xvfb
+        state: present
+        update_cache: yes
+
+    - name: ⚡ Check Intel RAPL powercap directory
+      stat:
+        path: /sys/class/powercap/intel-rapl:0/energy_uj
+      register: rapl_stat
+
+    - name: 🔓 Unlock RAPL energy counters for Telemetry
+      file:
+        path: /sys/class/powercap/intel-rapl:0/energy_uj
+        mode: '0444'
+      when: rapl_stat.stat.exists
+
+    # 1.5 USER SPACE TOOLS (Chrome, Gemini CLI, AnythingLLM)
+    - name: 🌐 Download and Install Google Chrome
+      apt:
+        deb: "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+        state: present
+
+    - name: 🛠️ Install NodeJS and NPM for modern CLIs
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+
+    - name: 🌌 Install Gemini CLI
+      npm:
+        name: "@google/generative-ai-cli"
+        global: yes
+      ignore_errors: yes
+
+    - name: 🧠 Install AnythingLLM (AnythingCLI)
+      shell: curl -fsSL https://s3.us-west-1.amazonaws.com/public.useanything.com/latest/installer.sh | sh
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+
+    # 2. AI ENGINE LAYER (OLLAMA & LM STUDIO)
+    - name: 🧠 Check if Ollama is installed
+      stat:
+        path: /usr/local/bin/ollama
+      register: ollama_stat
+
+    - name: 📡 Install Ollama
+      shell: curl -fsSL https://ollama.com/install.sh | sh
+      when: not ollama_stat.stat.exists
+
+    - name: ⬇️ Download LM Studio AppImage
+      get_url:
+        url: "{{ lm_studio_url }}"
+        dest: "/home/{{ real_user }}/LM_Studio.AppImage"
+        mode: '0755'
+        owner: "{{ real_user }}"
+
+    - name: 🧮 Hardware Profiling (Detect System RAM)
+      set_fact:
+        baseline_model: >-
+          {% if ansible_memtotal_mb < 8192 %}
+          qwen2.5-coder-1.5b-instruct
+          {% elif ansible_memtotal_mb >= 8192 and ansible_memtotal_mb < 24576 %}
+          qwen2.5-coder-7b-instruct
+          {% else %}
+          deepseek-coder-33b-instruct
+          {% endif %}
+
+    - name: 🧠 Auto-Download Optimized Baseline Model ({{ baseline_model }})
+      command: /home/{{ real_user }}/LM_Studio.AppImage get {{ baseline_model }}
+      environment:
+        APPIMAGE_EXTRACT_AND_RUN: "1"
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+
+    - name: ⚙️ Create LM Studio Headless Daemon
+      copy:
+        dest: /etc/systemd/system/lm-studio.service
+        content: |
+          [Unit]
+          Description=LM Studio Headless Server API
+          After=network.target
+          
+          [Service]
+          User={{ real_user }}
+          WorkingDirectory=/home/{{ real_user }}
+          ExecStart=/usr/bin/xvfb-run -a /home/{{ real_user }}/LM_Studio.AppImage server start
+          Restart=on-failure
+          RestartSec=5
+          Environment="APPIMAGE_EXTRACT_AND_RUN=1"
+          
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: 🚀 Enable and Start LM Studio Daemon
+      systemd:
+        name: lm-studio
+        daemon_reload: yes
+        enabled: yes
+        state: started
+
+    # 3. AOS PYTHON ENVIRONMENT
+    - name: 🐍 Setup AOS Virtual Environment
+      command: python3 -m venv .venv
+      args:
+        chdir: "{{ aos_dir }}"
+        creates: "{{ aos_dir }}/.venv"
+      become_user: "{{ real_user }}"
+
+    - name: 📦 Install AOS specific pip dependencies
+      pip:
+        requirements: "{{ aos_dir }}/requirements.txt"
+        executable: "{{ aos_dir }}/.venv/bin/pip"
+      become_user: "{{ real_user }}"
+
+    # 3.5 RESOURCE REPOSITORIES (Public APIs, Hugging Face, LangChain, Deep Learning)
+    - name: 📚 Clone Free API Resources (public-apis)
+      git:
+        repo: "https://github.com/public-apis/public-apis.git"
+        dest: "/home/{{ real_user }}/public-apis"
+        update: yes
+      become_user: "{{ real_user }}"
+
+    - name: 📚 Clone Hugging Face Transformers
+      git:
+        repo: "https://github.com/huggingface/transformers.git"
+        dest: "/home/{{ real_user }}/transformers"
+        update: yes
+      become_user: "{{ real_user }}"
+
+    - name: 🧠 Clone LangChain Ecosystem
+      git:
+        repo: "https://github.com/langchain-ai/langchain.git"
+        dest: "/home/{{ real_user }}/langchain"
+        update: yes
+      become_user: "{{ real_user }}"
+
+    - name: 🔥 Clone PyTorch Deep Learning Framework
+      git:
+        repo: "https://github.com/pytorch/pytorch.git"
+        dest: "/home/{{ real_user }}/pytorch"
+        update: yes
+      become_user: "{{ real_user }}"
+
+    - name: 📊 Clone TensorFlow Deep Learning Framework
+      git:
+        repo: "https://github.com/tensorflow/tensorflow.git"
+        dest: "/home/{{ real_user }}/tensorflow"
+        update: yes
+      become_user: "{{ real_user }}"
+
+    # 4. AOS SOVEREIGN DAEMON (SYSTEMD)
+    - name: ⚙️ Create AOS Chief of Staff Daemon
+      copy:
+        dest: /etc/systemd/system/aos-core.service
+        content: |
+          [Unit]
+          Description=AgenticOS (AOS) Chief of Staff
+          After=network.target
+          
+          [Service]
+          User={{ real_user }}
+          WorkingDirectory={{ aos_dir }}/src
+          ExecStart={{ aos_dir }}/.venv/bin/python3 {{ aos_dir }}/src/aos_daemon.py
+          Restart=on-failure
+          RestartSec=10
+          Environment="PYTHONUNBUFFERED=1"
+          
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: 🚀 Enable and Start AOS Daemon
+      systemd:
+        name: aos-core
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
