@@ -40,6 +40,27 @@
       when: rapl_stat.stat.exists
 
     # ============================================================
+    # 1.5 DESKTOP TOOLS & MODERN NODE.JS
+    # ============================================================
+    - name: 🌐 Download and Install Google Chrome
+      apt:
+        deb: "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+        state: present
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    - name: 📦 Add NodeSource PPA for Node.js 22+
+      shell: curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🛠️ Upgrade Node.js to v22+
+      apt:
+        name: nodejs
+        state: latest
+      when: deploy_mode == 'online'
+
+    # ============================================================
     # 2. AI ENGINE LAYER (OLLAMA & LM STUDIO)
     # ============================================================
     - name: 🧠 Check if Ollama is installed
