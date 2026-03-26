@@ -17,14 +17,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from tools.vram_manager import swap_model
-from config import DEFAULT_MODEL
+from config import DEFAULT_MODEL, ACTIVE_BACKEND_URL, FALLBACK_BACKEND_URL, ACTIVE_HOST_KEY
+from config import switch_active_host, list_hosts, load_remote_hosts
 from telemetry_engine.market_broker import select_best_model, log_inference
 
-app = FastAPI(title="AOS Reactive Gateway", version="3.0.0")
+app = FastAPI(title="AOS Reactive Gateway", version="4.0.0")
 
-TINY_MODEL = DEFAULT_MODEL
-HEAVY_MODEL = "deepseek-coder-33b-instruct"
-LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
+TINY_MODEL = "qwen2.5-0.5b-instruct"
+HEAVY_MODEL = "qwen/qwen3.5-35b-a3b"
+LM_STUDIO_URL = ACTIVE_BACKEND_URL
 
 # State tracking
 CURRENT_MODEL = None
@@ -79,7 +80,8 @@ async def startup_event():
     global CURRENT_MODEL
     print(f"\n{'='*60}")
     print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN GATEWAY")
-    print(f"  Listening on Port 8000 | Backend: Port 1234")
+    print(f"  Listening on Port 8000 | Backend: {LM_STUDIO_URL}")
+    print(f"  Active Host: {ACTIVE_HOST_KEY}")
     print(f"{'='*60}\n")
     log(f"Pre-loading idle model: {TINY_MODEL}")
     if swap_model(TINY_MODEL):
@@ -87,9 +89,28 @@ async def startup_event():
     else:
         log("WARNING: Failed to preload TINY_MODEL. LM Studio might be down.")
 
+@app.get("/v1/hosts")
+async def get_hosts():
+    """List all available LLM backends and the active one."""
+    hosts, active = list_hosts()
+    return JSONResponse(content={"hosts": hosts, "active_host": active})
+
+@app.post("/v1/hosts/switch")
+async def switch_host(request: Request):
+    """Switch the active LLM backend. Body: {"host": "aos-keller"}"""
+    global LM_STUDIO_URL
+    payload = await request.json()
+    host_key = payload.get("host")
+    if switch_active_host(host_key):
+        new_url, _, _ = load_remote_hosts()
+        LM_STUDIO_URL = new_url
+        log(f"🔄 Switched backend to: {host_key} ({LM_STUDIO_URL})")
+        return JSONResponse(content={"status": "switched", "active_host": host_key, "url": LM_STUDIO_URL})
+    return JSONResponse(status_code=400, content={"error": f"Unknown host: {host_key}"})
+
 @app.get("/v1/models")
 async def get_models():
-    """Proxy the models endpoint from LM Studio to the client."""
+    """Proxy the models endpoint from the active LLM backend."""
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(f"{LM_STUDIO_URL}/models", timeout=5.0)

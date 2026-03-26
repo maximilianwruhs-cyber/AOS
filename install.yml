@@ -5,7 +5,7 @@
   vars:
     aos_dir: "{{ playbook_dir }}"
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
-    lm_studio_url: "https://releases.lmstudio.ai/linux/x86_64/0.3.14/LM-Studio-0.3.14-x86_64.AppImage"
+    lm_studio_url: "https://lmstudio.ai/download/latest/linux/x64"
     deploy_mode: "{{ mode | default('online') }}"  # 'online' or 'iso'
 
   tasks:

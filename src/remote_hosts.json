@@ -1,0 +1,26 @@
+{
+  "hosts": {
+    "local": {
+      "name": "Local LM Studio",
+      "url": "http://127.0.0.1:1234/v1",
+      "description": "LM Studio running on this machine"
+    },
+    "aos-keller": {
+      "name": "AOS Keller Node",
+      "url": "http://192.168.31.138:1234/v1",
+      "description": "Remote LM Studio on the basement AOS node (Intel i5-6300U, 8GB)"
+    },
+    "ollama-local": {
+      "name": "Local Ollama",
+      "url": "http://127.0.0.1:11434/v1",
+      "description": "Ollama running on this machine"
+    },
+    "ollama-keller": {
+      "name": "AOS Keller Ollama",
+      "url": "http://192.168.31.138:11434/v1",
+      "description": "Remote Ollama on the basement AOS node"
+    }
+  },
+  "active_host": "local",
+  "fallback_host": "ollama-local"
+}
