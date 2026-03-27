@@ -273,8 +273,71 @@
       when: deploy_mode == 'online'
 
     # ============================================================
-    # 4. AGENTIC TOOLING (Gemini CLI, CLI-Anything, OpenClaw)
+    # 4. AGENTIC TOOLING (Antigravity, Gemini CLI, MCP Servers)
     # ============================================================
+
+    # --- 4.1 VS Code + Antigravity ---
+    - name: 🧲 Check if VS Code is installed
+      stat:
+        path: /usr/bin/code
+      register: vscode_stat
+
+    - name: 🧲 Download VS Code .deb
+      get_url:
+        url: "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+        dest: "/tmp/vscode.deb"
+      when:
+        - deploy_mode == 'online'
+        - not vscode_stat.stat.exists
+      ignore_errors: yes
+
+    - name: 🧲 Install VS Code
+      apt:
+        deb: "/tmp/vscode.deb"
+      when:
+        - deploy_mode == 'online'
+        - not vscode_stat.stat.exists
+      ignore_errors: yes
+
+    - name: 🧲 Install Antigravity (Gemini Code Assist) extension
+      shell: code --install-extension google.gemini-code-assist --force
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    # --- 4.2 uv (Python package runner for MCP servers) ---
+    - name: 🔧 Check if uv is installed
+      stat:
+        path: /usr/local/bin/uv
+      register: uv_stat
+
+    - name: 🔧 Install uv
+      shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+      become_user: "{{ real_user }}"
+      environment:
+        UV_INSTALL_DIR: /usr/local/bin
+      when:
+        - deploy_mode == 'online'
+        - not uv_stat.stat.exists
+      ignore_errors: yes
+
+    # --- 4.3 MCP Server Configuration ---
+    - name: 🔌 Create Gemini config directory
+      file:
+        path: "/home/{{ real_user }}/.gemini"
+        state: directory
+        owner: "{{ real_user }}"
+        mode: '0755'
+
+    - name: 🔌 Deploy MCP server configuration
+      template:
+        src: "{{ aos_dir }}/AddOns/mcp_config.json"
+        dest: "/home/{{ real_user }}/.gemini/settings.json"
+        owner: "{{ real_user }}"
+        mode: '0644'
+      ignore_errors: yes
+
+    # --- 4.4 CLI Agents ---
     - name: 🌌 Install Gemini CLI
       npm:
         name: "@google/gemini-cli"

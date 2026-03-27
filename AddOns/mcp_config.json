@@ -24,7 +24,7 @@
         "fastmcp",
         "--with",
         "httpx",
-        "/home/maximilian-wruhs/.gemini/antigravity/lm_studio_mcp.py"
+        "/home/{{ real_user }}/.gemini/antigravity/lm_studio_mcp.py"
       ]
     }
   }
