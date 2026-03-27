@@ -8,7 +8,8 @@
   hosts: localhost
   become: yes
   vars:
-    aos_dir: "/opt/aos"
+    aos_dir: "/opt/aos/repo"  # ISO layout: repo lives under /opt/aos/repo
+    venv_dir: "/opt/aos/.venv"
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
 
   tasks:
@@ -22,6 +23,31 @@
       file:
         path: /sys/class/powercap/intel-rapl:0/energy_uj
         mode: '0444'
+      when: rapl_stat.stat.exists
+
+    - name: 🔒 Persist RAPL unlock across reboots
+      copy:
+        dest: /etc/systemd/system/rapl-unlock.service
+        content: |
+          [Unit]
+          Description=Unlock Intel RAPL energy counters for AOS Telemetry
+          After=local-fs.target
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/bin/chmod 0444 /sys/class/powercap/intel-rapl:0/energy_uj
+          RemainAfterExit=yes
+          
+          [Install]
+          WantedBy=multi-user.target
+      when: rapl_stat.stat.exists
+
+    - name: 🚀 Enable RAPL unlock service
+      systemd:
+        name: rapl-unlock
+        daemon_reload: yes
+        enabled: yes
+        state: started
       when: rapl_stat.stat.exists
 
     # 2. HARDWARE PROFILING
@@ -52,7 +78,7 @@
           [Service]
           User={{ real_user }}
           WorkingDirectory=/home/{{ real_user }}
-          ExecStart=/usr/bin/xvfb-run -a /home/{{ real_user }}/LM_Studio.AppImage server start
+          ExecStart=/usr/bin/xvfb-run -a /opt/lm-studio/LM_Studio.AppImage server start
           Restart=on-failure
           RestartSec=5
           Environment="APPIMAGE_EXTRACT_AND_RUN=1"
@@ -71,7 +97,7 @@
           [Service]
           User={{ real_user }}
           WorkingDirectory={{ aos_dir }}/src
-          ExecStart={{ aos_dir }}/.venv/bin/python3 {{ aos_dir }}/src/aos_daemon.py
+          ExecStart={{ venv_dir }}/bin/python3 {{ aos_dir }}/src/aos_daemon.py
           Restart=on-failure
           RestartSec=10
           Environment="PYTHONUNBUFFERED=1"

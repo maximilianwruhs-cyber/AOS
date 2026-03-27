@@ -18,7 +18,7 @@
           - git
           - curl
           - python3.12-venv
-          - libfuse2
+          - libfuse2t64  # Ubuntu 24.04 Time64 transition (was libfuse2)
           - linux-tools-generic
           - python3-pip
           - xvfb

@@ -1,3 +1,17 @@
 __pycache__/
 *.pyc
 final_proof.log
+
+# Runtime artifacts
+.env
+.venv/
+data/
+*.db
+
+# ISO build workspace
+iso/iso_work/
+*.iso
+
+# OS
+.DS_Store
+Thumbs.db
