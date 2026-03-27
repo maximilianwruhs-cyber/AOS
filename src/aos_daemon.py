@@ -39,6 +39,7 @@ LM_STUDIO_URL = ACTIVE_BACKEND_URL
 CURRENT_MODEL = None
 IDLE_COOLDOWN_SECONDS = 300  # 5 minutes
 _cooldown_handle: asyncio.Task | None = None  # debounce handle
+_swap_lock = asyncio.Lock()  # FIX #39: serialize concurrent VRAM swaps
 
 # ─── Shadow Evaluator Config ─────────────────────────────────────────────────
 JUDGE_MODEL = HEAVY_MODEL
@@ -235,12 +236,13 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
     log(f"Incoming Request | Complexity: {complexity.upper()} | Target: {target_model}")
     
     # 2. VRAM Swap if needed — FIX Bug #1: pass LM_STUDIO_URL
-    if CURRENT_MODEL != target_model:
-        log(f"Swapping VRAM [{CURRENT_MODEL} -> {target_model}]...")
-        if await asyncio.to_thread(swap_model, target_model, backend_url=LM_STUDIO_URL):  # FIX #15
-            CURRENT_MODEL = target_model
-        else:
-            log("Swap failed. Proceeding with current model.")
+    async with _swap_lock:  # FIX #39: prevent concurrent VRAM swaps
+        if CURRENT_MODEL != target_model:
+            log(f"Swapping VRAM [{CURRENT_MODEL} -> {target_model}]...")
+            if await asyncio.to_thread(swap_model, target_model, backend_url=LM_STUDIO_URL):  # FIX #15
+                CURRENT_MODEL = target_model
+            else:
+                log("Swap failed. Proceeding with current model.")
             
     # Modify payload model to match the hardware backend
     payload["model"] = CURRENT_MODEL or target_model  # FIX #29: fallback if startup swap failed
