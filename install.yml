@@ -130,7 +130,7 @@
           {% endif %}
 
     - name: 🧠 Auto-Download Baseline Model via LM Studio
-      command: /opt/lm-studio/LM_Studio.AppImage get {{ baseline_model }}  # FIX #16
+      command: /opt/lm-studio/LM_Studio.AppImage get {{ baseline_model }}
       environment:
         APPIMAGE_EXTRACT_AND_RUN: "1"
       become_user: "{{ real_user }}"
@@ -148,7 +148,7 @@
           [Service]
           User={{ real_user }}
           WorkingDirectory=/home/{{ real_user }}
-          ExecStart=/usr/bin/xvfb-run -a /opt/lm-studio/LM_Studio.AppImage server start  # FIX #16
+          ExecStart=/usr/bin/xvfb-run -a /opt/lm-studio/LM_Studio.AppImage server start
           Restart=on-failure
           RestartSec=5
           Environment="APPIMAGE_EXTRACT_AND_RUN=1"

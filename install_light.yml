@@ -50,6 +50,14 @@
         state: started
       when: rapl_stat.stat.exists
 
+    - name: 🔓 Fix AppArmor user namespace restriction (Ubuntu 24.04)
+      sysctl:
+        name: kernel.apparmor_restrict_unprivileged_userns
+        value: '0'
+        sysctl_file: /etc/sysctl.d/20-apparmor-userns.conf
+        reload: yes
+      ignore_errors: yes
+
     # 2. HARDWARE PROFILING
     - name: 🧮 Hardware Profiling (Detect System RAM)
       set_fact:

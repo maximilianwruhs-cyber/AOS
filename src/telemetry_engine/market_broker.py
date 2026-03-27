@@ -52,9 +52,8 @@ def init_db():
             conn.execute("ALTER TABLE model_metrics ADD COLUMN avg_joules REAL DEFAULT 150.0")
             conn.execute("ALTER TABLE model_metrics ADD COLUMN eval_runs INTEGER DEFAULT 0")
             conn.execute("ALTER TABLE model_metrics ADD COLUMN total_runs INTEGER DEFAULT 0")
-            # Migrate old data
-            conn.execute("UPDATE model_metrics SET avg_quality = z_score, avg_joules = avg_wattage, total_runs = runs WHERE runs > 0")
-            logger.info("Migrated model_metrics schema to EMA format.")
+            # FIX #23: removed broken migration referencing non-existent columns (avg_wattage, runs)
+            logger.info("Migrated model_metrics schema to EMA format (columns added with defaults).")
 
 
 def log_inference(model: str, energy_joules: float, eval_score: float = None):
@@ -74,9 +73,10 @@ def log_inference(model: str, energy_joules: float, eval_score: float = None):
         if not row:
             # First time this model is seen
             q = eval_score if eval_score is not None else 0.5
+            j = energy_joules if energy_joules > 0 else 150.0  # FIX #24: don't seed with 0J (streaming)
             conn.execute(
                 "INSERT INTO model_metrics (model_name, avg_quality, avg_joules, eval_runs, total_runs, z_score) VALUES (?, ?, ?, ?, 1, ?)",
-                (model, q, energy_joules, 1 if eval_score is not None else 0, q / max(0.01, energy_joules))
+                (model, q, j, 1 if eval_score is not None else 0, q / max(0.01, j))
             )
         else:
             old_q, old_j, eval_runs, total_runs = row
