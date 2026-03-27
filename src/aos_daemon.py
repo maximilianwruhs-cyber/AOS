@@ -9,7 +9,7 @@ import asyncio
 import json
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request, BackgroundTasks, Depends, HTTPException, Header
 from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
 import uvicorn
@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
 from tools.vram_manager import swap_model
-from config import DEFAULT_MODEL, ACTIVE_BACKEND_URL, FALLBACK_BACKEND_URL, ACTIVE_HOST_KEY
+from config import DEFAULT_MODEL, ACTIVE_BACKEND_URL, FALLBACK_BACKEND_URL, ACTIVE_HOST_KEY, AOS_API_KEY
 from config import switch_active_host, list_hosts, load_remote_hosts
 from telemetry_engine.market_broker import select_best_model, log_inference
 
@@ -33,6 +33,13 @@ _cooldown_handle: asyncio.Task | None = None  # debounce handle
 
 def log(msg):
     print(f"[AOS-GATEWAY] {msg}")
+
+async def verify_token(authorization: str = Header(None)):
+    """Bearer Token auth. Skipped if AOS_API_KEY is not set (dev mode)."""
+    if not AOS_API_KEY:
+        return
+    if not authorization or authorization != f"Bearer {AOS_API_KEY}":
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # ─── Helper Functions ─────────────────────────────────────────────────────────
 def assess_complexity(messages: list) -> str:
@@ -118,7 +125,7 @@ async def get_hosts():
     return JSONResponse(content={"hosts": hosts, "active_host": active})
 
 @app.post("/v1/hosts/switch")
-async def switch_host(request: Request):
+async def switch_host(request: Request, _=Depends(verify_token)):
     """Switch the active LLM backend. Body: {"host": "aos-keller"}"""
     global LM_STUDIO_URL
     payload = await request.json()
@@ -141,7 +148,7 @@ async def get_models():
             return JSONResponse(status_code=500, content={"error": f"Backend offline: {e}"})
 
 @app.post("/v1/chat/completions")
-async def chat_completions(request: Request, background_tasks: BackgroundTasks):
+async def chat_completions(request: Request, background_tasks: BackgroundTasks, _=Depends(verify_token)):
     global CURRENT_MODEL
     payload = await request.json()
     messages = payload.get("messages", [])

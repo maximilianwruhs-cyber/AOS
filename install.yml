@@ -201,6 +201,27 @@
       ignore_errors: yes
       when: deploy_mode == 'online'
 
+    - name: 🐾 Configure OpenClaw to use AOS as LLM provider
+      copy:
+        dest: "/home/{{ real_user }}/.openclaw/config.json"
+        content: |
+          {
+            "provider": "openai-compatible",
+            "apiBase": "http://localhost:8000/v1",
+            "model": "qwen2.5-coder-1.5b-instruct"
+          }
+        owner: "{{ real_user }}"
+        mode: '0644'
+      ignore_errors: yes
+
+    - name: 🔗 Symlink AOS CLI for global use
+      file:
+        src: "{{ aos_dir }}/aos-cli.py"
+        dest: "/usr/local/bin/aos"
+        state: link
+        force: yes
+      ignore_errors: yes
+
     # ============================================================
     # 5. AOS SOVEREIGN DAEMON (SYSTEMD)
     # ============================================================

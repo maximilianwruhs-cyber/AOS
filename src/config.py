@@ -66,3 +66,6 @@ DEFAULT_MODEL = os.getenv("AOS_MODEL", "qwen2.5-coder-1.5b-instruct")
 TOTAL_TOKENS_PER_ROUND = int(os.getenv("AOS_TOKENS_PER_ROUND", "2048"))
 INITIAL_AGENT_BALANCE = float(os.getenv("AOS_INITIAL_BALANCE", "100.0"))
 
+# ─── API Auth ─────────────────────────────────────────────────────────────────
+AOS_API_KEY = os.getenv("AOS_API_KEY", None)  # None = auth disabled (dev mode)
+

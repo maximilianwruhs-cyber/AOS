@@ -2,10 +2,12 @@
 """
 AOS Benchmark — Runner
 Orchestrates benchmark runs: sends tasks to models, measures energy, scores output.
+Uses async httpx for non-blocking inference I/O.
 """
 import sys
 import time
 import json
+import asyncio
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -13,42 +15,43 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import config
-import requests
+import httpx
 from telemetry_engine.task_suite import get_suite, list_suites
 from telemetry_engine.evaluator import score_task
 from telemetry_engine.energy_meter import EnergyMeter
 from telemetry_engine.awattar import get_price_or_default
 
 
-def infer(model: str, prompt: str, ollama_url: str, temperature: float = 0.3) -> tuple[str, int, float]:
-    """Run inference, returns (output, tokens_used, elapsed_seconds)."""
+async def infer(client: httpx.AsyncClient, model: str, prompt: str,
+                ollama_url: str, temperature: float = 0.3) -> tuple[str, int, float]:
+    """Run inference asynchronously, returns (output, tokens_used, elapsed_seconds)."""
     start = time.time()
     try:
-        resp = requests.post(
+        resp = await client.post(
             f"{ollama_url}/chat/completions",
             json={
-                "model": model, 
+                "model": model,
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": temperature, 
+                "temperature": temperature,
                 "max_tokens": 256
             },
-            timeout=120,
+            timeout=120.0,
         )
         data = resp.json()
         elapsed = time.time() - start
-        
+
         choices = data.get("choices", [])
         output = choices[0].get("message", {}).get("content", "") if choices else ""
         usage = data.get("usage", {})
         tokens = usage.get("total_tokens", len(output.split()))
-        
+
         return output, tokens, elapsed
     except Exception as e:
         return f"ERROR: {e}", 0, time.time() - start
 
 
-def run_benchmark(model: str, suite: str = "full", ollama_url: str = None,
-                  temperature: float = 0.3, verbose: bool = True) -> dict:
+async def run_benchmark(model: str, suite: str = "full", ollama_url: str = None,
+                        temperature: float = 0.3, verbose: bool = True) -> dict:
     """Run a full benchmark suite against a model."""
     ollama_url = ollama_url or config.OLLAMA_URL
     tasks = get_suite(suite)
@@ -70,33 +73,34 @@ def run_benchmark(model: str, suite: str = "full", ollama_url: str = None,
     total_score = 0.0
     total_joules = 0.0
 
-    for i, task in enumerate(tasks):
-        meter.start()
-        output, tokens, elapsed = infer(model, task["prompt"], ollama_url, temperature)
-        energy = meter.stop()
-        score = score_task(task, output, judge_url=ollama_url, judge_model=model)
+    async with httpx.AsyncClient() as client:
+        for i, task in enumerate(tasks):
+            meter.start()
+            output, tokens, elapsed = await infer(client, model, task["prompt"], ollama_url, temperature)
+            energy = meter.stop()
+            score = await score_task(task, output, judge_url=ollama_url, judge_model=model)
 
-        total_tokens += tokens
-        total_time += elapsed
-        total_score += score
-        total_joules += energy["joules"]
+            total_tokens += tokens
+            total_time += elapsed
+            total_score += score
+            total_joules += energy["joules"]
 
-        result = {
-            "task_id": task["id"],
-            "type": task["type"],
-            "score": score,
-            "tokens": tokens,
-            "elapsed_s": round(elapsed, 3),
-            "joules": energy["joules"],
-            "watts_avg": energy["watts_avg"],
-            "output_preview": output[:100].replace("\n", " "),
-        }
-        results.append(result)
+            result = {
+                "task_id": task["id"],
+                "type": task["type"],
+                "score": score,
+                "tokens": tokens,
+                "elapsed_s": round(elapsed, 3),
+                "joules": energy["joules"],
+                "watts_avg": energy["watts_avg"],
+                "output_preview": output[:100].replace("\n", " "),
+            }
+            results.append(result)
 
-        if verbose:
-            icon = "✅" if score >= 0.8 else "⚠️" if score > 0 else "❌"
-            print(f"  {icon} [{task['type']:10}] {task['id']:12} score={score:.2f} "
-                  f"tokens={tokens:4} {energy['joules']:6.2f}J {energy['watts_avg']:5.1f}W")
+            if verbose:
+                icon = "✅" if score >= 0.8 else "⚠️" if score > 0 else "❌"
+                print(f"  {icon} [{task['type']:10}] {task['id']:12} score={score:.2f} "
+                      f"tokens={tokens:4} {energy['joules']:6.2f}J {energy['watts_avg']:5.1f}W")
 
     n = len(tasks)
     avg_score = total_score / n if n > 0 else 0
@@ -225,13 +229,13 @@ def main():
     args = parser.parse_args()
 
     if args.command == "bench":
-        summary = run_benchmark(
+        summary = asyncio.run(run_benchmark(
             model=args.model,
             suite=args.suite,
             ollama_url=args.ollama_url,
             temperature=args.temperature,
             verbose=not args.quiet,
-        )
+        ))
         save_results(summary)
 
     elif args.command == "compare":
