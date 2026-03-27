@@ -226,7 +226,8 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
     # 1. Triage
     complexity = assess_complexity(messages)
     try:
-        target_model = select_best_model(complexity, TINY_MODEL, HEAVY_MODEL)
+        # FIX #34: don't block event loop with sync SQLite
+        target_model = await asyncio.to_thread(select_best_model, complexity, TINY_MODEL, HEAVY_MODEL)
     except Exception as e:
         log(f"Market Broker failed: {e}. Defaulting to static escalation.")
         target_model = HEAVY_MODEL if complexity == "heavy" else TINY_MODEL

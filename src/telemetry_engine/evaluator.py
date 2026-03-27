@@ -115,7 +115,7 @@ async def score_reasoning(output: str, rubric: str, judge_url: str = None,
             )
         text = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "0.0")
         # Parse CoT format: look for SCORE: <float> first, then any float
-        score_match = re.search(r'SCORE:\s*(0\.\d+|1\.0|[01])', text)
+        score_match = re.search(r'SCORE:\s*((?:0|1)\.\d+|[01])', text)  # FIX #36: match 1.00 etc.
         if score_match:
             return float(score_match.group(1))
         m = re.search(r'([0-1]\.\d+|[01])', text)

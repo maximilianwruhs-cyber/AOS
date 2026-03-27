@@ -17,6 +17,7 @@ DB_PATH = Path(__file__).parent.parent.parent / "data" / "aos_metrics.db"
 ALPHA = 0.15            # EMA decay: 15% new data, 85% history (~13 eval memory)
 EPSILON = 0.10          # Exploration rate: 10% random model choice
 MIN_STABLE_EVALS = 5   # Warm-up: models with <5 evals get forced exploration
+_db_initialized = False  # FIX #35: skip repeated schema checks
 
 # ─── Lazy import to avoid circular dependency ───────────────────────────────
 _awattar_price_fn = None
@@ -32,6 +33,9 @@ def _get_price():
 
 
 def init_db():
+    global _db_initialized
+    if _db_initialized:  # FIX #35: skip after first successful init
+        return
     os.makedirs(DB_PATH.parent, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
@@ -54,6 +58,7 @@ def init_db():
             conn.execute("ALTER TABLE model_metrics ADD COLUMN total_runs INTEGER DEFAULT 0")
             # FIX #23: removed broken migration referencing non-existent columns (avg_wattage, runs)
             logger.info("Migrated model_metrics schema to EMA format (columns added with defaults).")
+    _db_initialized = True
 
 
 def log_inference(model: str, energy_joules: float, eval_score: float = None):
