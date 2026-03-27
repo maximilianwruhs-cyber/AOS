@@ -56,6 +56,11 @@ fi
 # ─── 2. Extract ISO contents ─────────────────────────────────
 echo "=> 2. Extracting ISO contents..."
 mount -o loop "$ISO_NAME" "$WORK_DIR/mnt" 2>/dev/null || true
+# FIX #46: Verify mount succeeded before proceeding
+if ! mountpoint -q "$WORK_DIR/mnt"; then
+    echo "❌ Failed to mount $ISO_NAME. Is it a valid ISO?"
+    exit 1
+fi
 rsync -a "$WORK_DIR/mnt/" "$WORK_DIR/iso/"
 umount "$WORK_DIR/mnt" 2>/dev/null || true
 

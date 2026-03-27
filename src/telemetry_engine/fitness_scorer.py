@@ -72,7 +72,7 @@ def compute_quality(trials: List[TrialResult], config: ScoringConfig) -> float:
     avg_similarity = statistics.mean(t.output_similarity for t in successful)
 
     # Normalize execution time against baseline
-    time_score = min(1.0, config.baseline_time_ms / avg_time)
+    time_score = min(1.0, config.baseline_time_ms / max(0.001, avg_time))  # FIX #44: avoid div/0
 
     # Weighted blend (simple & effective)
     Q = (

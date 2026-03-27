@@ -11,6 +11,7 @@ import json
 import random
 import re
 import logging
+import hmac  # FIX #47: constant-time string comparison
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, BackgroundTasks, Depends, HTTPException, Header
@@ -54,7 +55,9 @@ async def verify_token(authorization: str = Header(None)):
     """Bearer Token auth. Skipped if AOS_API_KEY is not set (dev mode)."""
     if not AOS_API_KEY:
         return
-    if not authorization or authorization != f"Bearer {AOS_API_KEY}":
+    expected = f"Bearer {AOS_API_KEY}"
+    # FIX #47: constant-time compare to prevent timing attacks
+    if not authorization or not hmac.compare_digest(authorization, expected):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # ─── Helper Functions ─────────────────────────────────────────────────────────
