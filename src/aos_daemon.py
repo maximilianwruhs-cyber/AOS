@@ -74,8 +74,8 @@ async def _do_cooldown():
     log(f"Cooldown initiated. Waiting {IDLE_COOLDOWN_SECONDS}s...")
     await asyncio.sleep(IDLE_COOLDOWN_SECONDS)
     log(f"Cooldown complete. System idle. Reverting to {TINY_MODEL}.")
-    # FIX Bug #1: pass current LM_STUDIO_URL to swap_model
-    if swap_model(TINY_MODEL, backend_url=LM_STUDIO_URL):
+    # FIX Bug #15: run sync swap_model in thread pool to not block event loop
+    if await asyncio.to_thread(swap_model, TINY_MODEL, backend_url=LM_STUDIO_URL):
         CURRENT_MODEL = TINY_MODEL
 
 # FIX Bug #3: schedule_cooldown is now async
@@ -159,8 +159,8 @@ async def lifespan(app):
     print(f"  Shadow Evaluator: {EVAL_SAMPLE_RATE*100:.0f}% LLM-Judge | EMA α={0.15}")
     print(f"{'='*60}\n")
     log(f"Pre-loading idle model: {TINY_MODEL}")
-    # FIX Bug #1: pass URL
-    if swap_model(TINY_MODEL, backend_url=LM_STUDIO_URL):
+    # FIX Bug #15: run sync swap_model in thread pool
+    if await asyncio.to_thread(swap_model, TINY_MODEL, backend_url=LM_STUDIO_URL):
         CURRENT_MODEL = TINY_MODEL
     else:
         log("WARNING: Failed to preload TINY_MODEL. LM Studio might be down.")
@@ -236,7 +236,7 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
     # 2. VRAM Swap if needed — FIX Bug #1: pass LM_STUDIO_URL
     if CURRENT_MODEL != target_model:
         log(f"Swapping VRAM [{CURRENT_MODEL} -> {target_model}]...")
-        if swap_model(target_model, backend_url=LM_STUDIO_URL):
+        if await asyncio.to_thread(swap_model, target_model, backend_url=LM_STUDIO_URL):  # FIX #15
             CURRENT_MODEL = target_model
         else:
             log("Swap failed. Proceeding with current model.")

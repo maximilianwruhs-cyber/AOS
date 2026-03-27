@@ -109,7 +109,7 @@ async def score_reasoning(output: str, rubric: str, judge_url: str = None,
                     "model": judge_model,
                     "messages": [{"role": "user", "content": judge_prompt}],
                     "temperature": 0.1,
-                    "max_tokens": 10
+                    "max_tokens": 100  # FIX #13: CoT rubric needs space for CRITIQUE + SCORE
                 },
                 timeout=30.0,
             )

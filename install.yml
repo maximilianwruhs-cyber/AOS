@@ -62,6 +62,14 @@
         state: started
       when: rapl_stat.stat.exists
 
+    - name: 🔓 Fix AppArmor user namespace restriction (Ubuntu 24.04)
+      sysctl:
+        name: kernel.apparmor_restrict_unprivileged_userns
+        value: '0'
+        sysctl_file: /etc/sysctl.d/20-apparmor-userns.conf
+        reload: yes
+      ignore_errors: yes
+
     # ============================================================
     # 1.5 DESKTOP TOOLS & MODERN NODE.JS
     # ============================================================
@@ -95,12 +103,18 @@
       shell: curl -fsSL https://ollama.com/install.sh | sh
       when: deploy_mode == 'online' and not ollama_stat.stat.exists
 
+    - name: 📁 Create LM Studio directory
+      file:
+        path: /opt/lm-studio
+        state: directory
+        mode: '0755'
+      when: deploy_mode == 'online'
+
     - name: ⬇️ Download LM Studio AppImage
       get_url:
         url: "{{ lm_studio_url }}"
-        dest: "/home/{{ real_user }}/LM_Studio.AppImage"
+        dest: "/opt/lm-studio/LM_Studio.AppImage"  # FIX #16: unified path
         mode: '0755'
-        owner: "{{ real_user }}"
       ignore_errors: yes
       when: deploy_mode == 'online'
 
@@ -116,7 +130,7 @@
           {% endif %}
 
     - name: 🧠 Auto-Download Baseline Model via LM Studio
-      command: /home/{{ real_user }}/LM_Studio.AppImage get {{ baseline_model }}
+      command: /opt/lm-studio/LM_Studio.AppImage get {{ baseline_model }}  # FIX #16
       environment:
         APPIMAGE_EXTRACT_AND_RUN: "1"
       become_user: "{{ real_user }}"
@@ -134,7 +148,7 @@
           [Service]
           User={{ real_user }}
           WorkingDirectory=/home/{{ real_user }}
-          ExecStart=/usr/bin/xvfb-run -a /home/{{ real_user }}/LM_Studio.AppImage server start
+          ExecStart=/usr/bin/xvfb-run -a /opt/lm-studio/LM_Studio.AppImage server start  # FIX #16
           Restart=on-failure
           RestartSec=5
           Environment="APPIMAGE_EXTRACT_AND_RUN=1"
