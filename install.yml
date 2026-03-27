@@ -228,24 +228,25 @@
       ignore_errors: yes
       when: deploy_mode == 'online'
 
-    - name: ⚙️ Create LM Studio Headless Daemon
+    - name: ⚙️ Create LM Studio Desktop Daemon
       copy:
         dest: /etc/systemd/system/lm-studio.service
         content: |
           [Unit]
-          Description=LM Studio Headless Server API
-          After=network.target
+          Description=LM Studio Desktop Server
+          After=network.target graphical.target
           
           [Service]
           User={{ real_user }}
           WorkingDirectory=/home/{{ real_user }}
-          ExecStart=/usr/bin/xvfb-run -a /opt/lm-studio/LM_Studio.AppImage server start
+          ExecStart=/opt/lm-studio/LM_Studio.AppImage
           Restart=on-failure
           RestartSec=5
           Environment="APPIMAGE_EXTRACT_AND_RUN=1"
+          Environment="DISPLAY=:0"
           
           [Install]
-          WantedBy=multi-user.target
+          WantedBy=graphical.target
 
     - name: 🚀 Enable and Start LM Studio Daemon
       systemd:
