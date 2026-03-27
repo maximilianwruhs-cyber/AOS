@@ -16,14 +16,16 @@ import httpx
 
 
 GENERIC_QUALITY_RUBRIC = """
-Rate the response quality on these dimensions:
-1. Relevance: Does it answer what was asked?
-2. Correctness: Is the information accurate?
-3. Completeness: Does it cover the topic adequately?
-4. Clarity: Is it well-structured and understandable?
-Give an overall score from 0.0 to 1.0 based on how well the response satisfies these criteria.
-Reply with ONLY a decimal number between 0.0 and 1.0. Nothing else.
-SCORE:
+Evaluate the response based on Relevance, Correctness, Completeness, and Clarity.
+Do not reward verbosity. Concise, accurate answers should receive high scores.
+
+INSTRUCTIONS:
+1. Provide a brief 1-2 sentence CRITIQUE identifying any flaws, hallucinations, or unnecessary verbosity.
+2. Provide a final SCORE between 0.0 and 1.0.
+
+Format strictly as:
+CRITIQUE: <text>
+SCORE: <float>
 """
 
 
@@ -63,8 +65,10 @@ def score_code(output: str, test_code: str) -> float:
     if match:
         code = match.group(1)
 
-    dangerous = ['import os', 'import subprocess', 'import shutil', 'open(', '__import__',
-                 'eval(', 'exec(', 'system(', 'rmdir', 'unlink']
+    # FIX Bug #5: extended blocklist (not a substitute for real sandboxing)
+    dangerous = ['import os', 'import subprocess', 'import shutil', 'open(',
+                 '__import__', 'eval(', 'exec(', 'system(', 'rmdir', 'unlink',
+                 'importlib', '__builtins__', 'getattr(', 'compile(']
     for d in dangerous:
         if d in code:
             return 0.0
@@ -103,6 +107,10 @@ async def score_reasoning(output: str, rubric: str, judge_url: str = None,
                 timeout=30.0,
             )
         text = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "0.0")
+        # Parse CoT format: look for SCORE: <float> first, then any float
+        score_match = re.search(r'SCORE:\s*(0\.\d+|1\.0|[01])', text)
+        if score_match:
+            return float(score_match.group(1))
         m = re.search(r'([0-1]\.\d+|[01])', text)
         return float(m.group(1)) if m else 0.0
     except Exception:

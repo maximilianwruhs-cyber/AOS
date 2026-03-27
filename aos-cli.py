@@ -6,6 +6,7 @@ Used by CLI-Anything and OpenClaw for agent-native interaction.
 import sys
 import json
 import os
+from pathlib import Path
 import httpx
 
 AOS_URL = os.getenv("AOS_URL", "http://localhost:8000")
@@ -88,11 +89,13 @@ def main():
         ask(" ".join(sys.argv[2:]))
     elif cmd == "bench":
         import subprocess
-        runner = str(__import__("pathlib").Path(__file__).parent / "src" / "telemetry_engine" / "runner.py")
+        script_dir = Path(os.path.realpath(__file__)).parent  # FIX Bug #4: resolve symlinks
+        runner = str(script_dir / "src" / "telemetry_engine" / "runner.py")
         subprocess.run([sys.executable, runner] + sys.argv[1:])
     elif cmd == "leaderboard":
         import subprocess
-        runner = str(__import__("pathlib").Path(__file__).parent / "src" / "telemetry_engine" / "runner.py")
+        script_dir = Path(os.path.realpath(__file__)).parent  # FIX Bug #4: resolve symlinks
+        runner = str(script_dir / "src" / "telemetry_engine" / "runner.py")
         subprocess.run([sys.executable, runner, "compare"])
     else:
         print(f"Unknown command: {cmd}")

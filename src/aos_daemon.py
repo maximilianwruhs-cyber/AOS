@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
-AgenticOS (AOS) - Reactive Sovereign Gateway
+AgenticOS (AOS) - Reactive Sovereign Gateway v4.2.0
 Routes OpenAI-compatible API requests dynamically based on payload complexity.
+Shadow Evaluator: Sampled HEAVY-Judge with EMA convergence.
 """
 import time
 import sys
 import asyncio
 import json
+import random
+import re
+import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, BackgroundTasks, Depends, HTTPException, Header
@@ -21,6 +25,11 @@ from tools.vram_manager import swap_model
 from config import DEFAULT_MODEL, ACTIVE_BACKEND_URL, FALLBACK_BACKEND_URL, ACTIVE_HOST_KEY, AOS_API_KEY
 from config import switch_active_host, list_hosts, load_remote_hosts
 from telemetry_engine.market_broker import select_best_model, log_inference
+from telemetry_engine.evaluator import score_generic_quality, GENERIC_QUALITY_RUBRIC
+from telemetry_engine.energy_meter import EnergyMeter
+
+logger = logging.getLogger("agenticos.gateway")
+logging.basicConfig(level=logging.INFO, format="[AOS-GATEWAY] %(message)s")
 
 # ─── Constants & State ────────────────────────────────────────────────────────
 TINY_MODEL = "qwen2.5-0.5b-instruct"
@@ -31,8 +40,14 @@ CURRENT_MODEL = None
 IDLE_COOLDOWN_SECONDS = 300  # 5 minutes
 _cooldown_handle: asyncio.Task | None = None  # debounce handle
 
+# ─── Shadow Evaluator Config ─────────────────────────────────────────────────
+JUDGE_MODEL = HEAVY_MODEL
+EVAL_SAMPLE_RATE = 0.15        # Only 15% of requests get LLM-as-Judge
+MAX_CONCURRENT_EVALS = 1       # Backpressure: protect VRAM from eval queue floods
+_eval_semaphore = asyncio.Semaphore(MAX_CONCURRENT_EVALS)
+
 def log(msg):
-    print(f"[AOS-GATEWAY] {msg}")
+    logger.info(msg)
 
 async def verify_token(authorization: str = Header(None)):
     """Bearer Token auth. Skipped if AOS_API_KEY is not set (dev mode)."""
@@ -59,26 +74,78 @@ async def _do_cooldown():
     log(f"Cooldown initiated. Waiting {IDLE_COOLDOWN_SECONDS}s...")
     await asyncio.sleep(IDLE_COOLDOWN_SECONDS)
     log(f"Cooldown complete. System idle. Reverting to {TINY_MODEL}.")
-    if swap_model(TINY_MODEL):
+    # FIX Bug #1: pass current LM_STUDIO_URL to swap_model
+    if swap_model(TINY_MODEL, backend_url=LM_STUDIO_URL):
         CURRENT_MODEL = TINY_MODEL
 
-def schedule_cooldown():
+# FIX Bug #3: schedule_cooldown is now async
+async def schedule_cooldown():
     """Debounced cooldown: cancels previous timer before starting a new one."""
     global _cooldown_handle
     if _cooldown_handle and not _cooldown_handle.done():
         _cooldown_handle.cancel()
     _cooldown_handle = asyncio.create_task(_do_cooldown())
 
-async def shadow_evaluation(model: str, complexity: str):
-    """Background task to grade the response and track bounds asynchronously."""
-    import random
-    log("Running Shadow Evaluator...")
-    simulated_joules = 50.0 if model == TINY_MODEL else 250.0
-    quality = random.uniform(0.8, 1.0)
-    if model == TINY_MODEL and complexity == "heavy":
-        quality = random.uniform(0.2, 0.5)
-    log_inference(model, simulated_joules, quality)
-    log(f"Shadow Evaluator Logged: {model} | Acc: {quality:.2f} | J: {simulated_joules}")
+# ─── Shadow Evaluator (Real Logic) ───────────────────────────────────────────
+async def shadow_evaluation(prompt: str, response_text: str, target_model: str,
+                            complexity: str, energy_joules: float):
+    """
+    Background task: grades the response quality asynchronously.
+    
+    Strategy: Sampled HEAVY-Judge with zero-compute fallbacks.
+    - 100% of requests: update RAPL energy in market_broker
+    - 15% of requests: run LLM-as-Judge for quality score
+    - Zero-compute heuristics catch obvious failures before wasting GPU
+    """
+    try:
+        eval_score = None
+
+        # 1. Zero-compute heuristics (catch garbage before wasting GPU)
+        if not response_text.strip():
+            log(f"[EVAL] {target_model}: Empty response → score 0.1")
+            eval_score = 0.1
+        elif len(response_text.strip()) < 10 and len(prompt) > 50:
+            log(f"[EVAL] {target_model}: Suspiciously short response → score 0.1")
+            eval_score = 0.1
+
+        # 2. LLM-as-Judge with fractional sampling
+        if eval_score is None and random.random() <= EVAL_SAMPLE_RATE:
+            # Load shedding: skip if semaphore is already locked (user requests go first)
+            if _eval_semaphore.locked():
+                log("[EVAL] Queue full — skipping Judge to prioritize user requests.")
+            else:
+                async with _eval_semaphore:
+                    log(f"[EVAL] Running LLM-Judge for {target_model} ({energy_joules:.1f}J)...")
+
+                    # Blind evaluation: no model name in the judge prompt
+                    judge_input = (
+                        f"Evaluate the AI response to the User Prompt.\n\n"
+                        f"USER PROMPT:\n{prompt[:500]}\n\n"
+                        f"AI RESPONSE:\n{response_text[:800]}"
+                    )
+
+                    try:
+                        raw_score = await score_generic_quality(
+                            output=judge_input,
+                            judge_url=LM_STUDIO_URL,
+                            judge_model=JUDGE_MODEL
+                        )
+                        eval_score = max(0.0, min(1.0, float(raw_score)))
+                        log(f"[EVAL] {target_model} scored {eval_score:.2f}")
+                    except Exception as e:
+                        log(f"[EVAL] Judge failed: {e}. Skipping quality update.")
+
+        # 3. Update market broker (energy ALWAYS, quality only when scored)
+        log_inference(target_model, energy_joules, eval_score)
+
+        if eval_score is not None:
+            log(f"[EVAL] Logged: {target_model} | Score: {eval_score:.2f} | Energy: {energy_joules:.1f}J")
+        else:
+            log(f"[EVAL] Energy-only update: {target_model} | {energy_joules:.1f}J")
+
+    except Exception as e:
+        log(f"[EVAL] Shadow evaluation failed: {e}")
+
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
 @asynccontextmanager
@@ -86,19 +153,21 @@ async def lifespan(app):
     """Startup and shutdown logic for the AOS Gateway."""
     global CURRENT_MODEL
     print(f"\n{'='*60}")
-    print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN GATEWAY")
+    print(f"  🏛️ AGENTICOS (AOS) — SOVEREIGN GATEWAY v4.2.0")
     print(f"  Listening on Port 8000 | Backend: {LM_STUDIO_URL}")
     print(f"  Active Host: {ACTIVE_HOST_KEY}")
+    print(f"  Shadow Evaluator: {EVAL_SAMPLE_RATE*100:.0f}% LLM-Judge | EMA α={0.15}")
     print(f"{'='*60}\n")
     log(f"Pre-loading idle model: {TINY_MODEL}")
-    if swap_model(TINY_MODEL):
+    # FIX Bug #1: pass URL
+    if swap_model(TINY_MODEL, backend_url=LM_STUDIO_URL):
         CURRENT_MODEL = TINY_MODEL
     else:
         log("WARNING: Failed to preload TINY_MODEL. LM Studio might be down.")
     yield
     log("Shutting down AOS Gateway.")
 
-app = FastAPI(title="AOS Reactive Gateway", version="4.1.0", lifespan=lifespan)
+app = FastAPI(title="AOS Reactive Gateway", version="4.2.0", lifespan=lifespan)
 
 @app.get("/health")
 async def health_check():
@@ -116,6 +185,7 @@ async def health_check():
         "active_host": ACTIVE_HOST_KEY,
         "backend_url": LM_STUDIO_URL,
         "backend_reachable": backend_ok,
+        "shadow_eval_sample_rate": EVAL_SAMPLE_RATE,
     })
 
 @app.get("/v1/hosts")
@@ -163,39 +233,60 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
     
     log(f"Incoming Request | Complexity: {complexity.upper()} | Target: {target_model}")
     
-    # 2. VRAM Swap if needed
+    # 2. VRAM Swap if needed — FIX Bug #1: pass LM_STUDIO_URL
     if CURRENT_MODEL != target_model:
         log(f"Swapping VRAM [{CURRENT_MODEL} -> {target_model}]...")
-        if swap_model(target_model):
+        if swap_model(target_model, backend_url=LM_STUDIO_URL):
             CURRENT_MODEL = target_model
         else:
             log("Swap failed. Proceeding with current model.")
             
-    # Modify payload model to match the hardware backend's expected name if strict
+    # Modify payload model to match the hardware backend
     payload["model"] = CURRENT_MODEL
-    
-    # 3. Forward to backend
-    async def forward_stream():
-        async with httpx.AsyncClient(timeout=300.0) as client:
-            async with client.stream("POST", f"{LM_STUDIO_URL}/chat/completions", json=payload) as response:
-                async for chunk in response.aiter_bytes():
-                    yield chunk
 
-    # Handle streaming vs non-streaming
+    # 3. Start energy measurement BEFORE inference
+    meter = EnergyMeter()
+    meter.start()
+    
+    # Extract prompt for Shadow Evaluator
+    prompt_text = " ".join(m.get("content", "") for m in messages if isinstance(m.get("content"), str))
+
+    # 4. Forward to backend
     if payload.get("stream", False):
-        schedule_cooldown()
-        background_tasks.add_task(shadow_evaluation, target_model, complexity)
+        async def forward_stream():
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                async with client.stream("POST", f"{LM_STUDIO_URL}/chat/completions", json=payload) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+
+        # For streaming: measure energy until first chunk (approximation)
+        energy = meter.stop()
+        await schedule_cooldown()  # FIX Bug #3: await
+        # Streaming can't easily capture full response — log energy only
+        background_tasks.add_task(shadow_evaluation, prompt_text, "[streaming]", target_model, complexity, energy["joules"])
         return StreamingResponse(forward_stream(), media_type="text/event-stream")
     else:
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
                 resp = await client.post(f"{LM_STUDIO_URL}/chat/completions", json=payload)
-                schedule_cooldown()
-                background_tasks.add_task(shadow_evaluation, target_model, complexity)
-                return JSONResponse(status_code=resp.status_code, content=resp.json())
+                energy = meter.stop()  # Stop BEFORE shadow eval (don't count eval joules)
+                
+                # Extract response text for Shadow Evaluator
+                resp_data = resp.json()
+                response_text = ""
+                choices = resp_data.get("choices", [])
+                if choices:
+                    response_text = choices[0].get("message", {}).get("content", "")
+
+                await schedule_cooldown()  # FIX Bug #3: await
+                background_tasks.add_task(
+                    shadow_evaluation, prompt_text, response_text,
+                    target_model, complexity, energy["joules"]
+                )
+                return JSONResponse(status_code=resp.status_code, content=resp_data)
             except Exception as e:
+                meter.stop()  # Clean up meter
                 return JSONResponse(status_code=500, content={"error": f"Backend failed: {e}"})
 
 if __name__ == "__main__":
     uvicorn.run("aos_daemon:app", host="0.0.0.0", port=8000, reload=False)
-
