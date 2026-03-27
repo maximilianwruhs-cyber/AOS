@@ -23,6 +23,7 @@
           - python3-pip
           - xvfb
           - libasound2t64  # Required for Chrome on Ubuntu Server
+          - openssh-server  # Enable SSH access for remote management
         state: present
         update_cache: yes
       when: deploy_mode == 'online'
