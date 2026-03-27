@@ -22,6 +22,7 @@
           - linux-tools-generic
           - python3-pip
           - xvfb
+          - libasound2t64  # Required for Chrome on Ubuntu Server
         state: present
         update_cache: yes
       when: deploy_mode == 'online'
@@ -146,7 +147,6 @@
     - name: 🗄️ Start pgvector Postgres container
       shell: |
         docker compose -f {{ aos_dir }}/docker-compose.yml up -d
-      become_user: "{{ real_user }}"
       ignore_errors: yes
       when: deploy_mode == 'online'
 
@@ -297,13 +297,26 @@
       ignore_errors: yes
       when: deploy_mode == 'online'
 
+    - name: 📋 Check if CLI-Anything requirements.txt exists
+      stat:
+        path: "/home/{{ real_user }}/CLI-Anything/requirements.txt"
+      register: cli_anything_reqs
+      become_user: "{{ real_user }}"
+
     - name: 📦 Install CLI-Anything dependencies
       pip:
         requirements: "/home/{{ real_user }}/CLI-Anything/requirements.txt"
         executable: "{{ aos_dir }}/.venv/bin/pip"
       become_user: "{{ real_user }}"
+      when: cli_anything_reqs.stat.exists
       ignore_errors: yes
-      when: deploy_mode == 'online'
+
+    - name: 📁 Create OpenClaw config directory
+      file:
+        path: "/home/{{ real_user }}/.openclaw"
+        state: directory
+        owner: "{{ real_user }}"
+        mode: '0755'
 
     - name: 🐾 Configure OpenClaw to use AOS as LLM provider
       copy:

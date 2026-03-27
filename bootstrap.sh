@@ -144,17 +144,12 @@ fi
 step 7 "Starting Docker services (pgvector)"
 
 if command -v docker &>/dev/null; then
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "aos-pgvector"; then
+    if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "aos-pgvector"; then
         skip "pgvector container already running"
     else
-        # Ensure user can access docker (may need newgrp after fresh install)
-        if ! docker info &>/dev/null; then
-            info "Docker group change detected. Attempting with sudo..."
-            sudo docker compose -f "$AOS_DIR/docker-compose.yml" up -d 2>/dev/null || \
-                fail "Docker not ready. Log out and back in, then run: cd ~/AOS && docker compose up -d"
-        else
-            docker compose -f "$AOS_DIR/docker-compose.yml" up -d
-        fi
+        info "Starting pgvector container (using sudo — docker group activates on next login)..."
+        sudo docker compose -f "$AOS_DIR/docker-compose.yml" up -d 2>/dev/null || \
+            fail "Docker failed. After reboot, run: cd ~/AOS && docker compose up -d"
         ok "pgvector Postgres container started"
     fi
 else
@@ -183,7 +178,7 @@ fi
 
 # Check pgvector
 TOTAL=$((TOTAL + 1))
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "aos-pgvector"; then
+if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -q "aos-pgvector"; then
     ok "pgvector Postgres is running"
     PASS=$((PASS + 1))
 else
