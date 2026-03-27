@@ -11,9 +11,9 @@ autoinstall:
   identity:
     hostname: aos-gateway
     username: aos
-    # Default password: "0815" — change after first login!
-    # Generate new hash: mkpasswd -m sha-512 "YourPassword"
-    password: "$6$rounds=4096$RandomSalt$HashedPasswordHere"
+    # Default password: "0815"
+    # Regenerate: mkpasswd -m sha-512 "YourNewPassword"
+    password: "$6$mLur9aRzpeLGvFMQ$YjYRqOX8cv9Dk7Ujbi.xpxk8tSK6qShy//fooLqkyCU0Cy9/U467SUgYRFLhLUHbI3mmWOSNZR2kFLaiJjIPI/"
 
   # ─── SSH ────────────────────────────────────────────────────
   ssh:

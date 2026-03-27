@@ -19,6 +19,17 @@ ISO_NAME="${1:-ubuntu-24.04-desktop.iso}"
 CUSTOM_ISO="aos-installer-24.04.iso"
 WORK_DIR="$SCRIPT_DIR/iso_work"
 
+# FIX Bug #7: Cleanup trap — unmounts chroot binds on ANY exit (error or normal)
+cleanup() {
+    echo "=> Cleanup: unmounting chroot binds..."
+    umount "$WORK_DIR/chroot/sys" 2>/dev/null || true
+    umount "$WORK_DIR/chroot/proc" 2>/dev/null || true
+    umount "$WORK_DIR/chroot/run" 2>/dev/null || true
+    umount "$WORK_DIR/chroot/dev" 2>/dev/null || true
+    rm -f "$WORK_DIR/chroot/etc/resolv.conf" 2>/dev/null || true
+}
+trap cleanup EXIT
+
 # ─── Preflight checks ────────────────────────────────────────
 if [ "$EUID" -ne 0 ]; then
     echo "❌ Must run as root (sudo ./build_iso.sh)"

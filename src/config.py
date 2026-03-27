@@ -8,7 +8,7 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent / ".env")
+    load_dotenv(Path(__file__).parent.parent / ".env")  # FIX Bug #10: project root, not src/
 except ImportError:
     pass  # python-dotenv is optional; env vars still work
 

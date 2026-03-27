@@ -123,10 +123,14 @@ def select_best_model(complexity: str, tiny_model: str, heavy_model: str) -> str
             return heavy_model if complexity == "heavy" else tiny_model
 
         # ── Warm-Up: Force exploration for under-evaluated models ──
-        for name, _, _, eval_runs in models:
-            if eval_runs < MIN_STABLE_EVALS:
-                logger.info(f"Warm-up exploration: {name} has only {eval_runs}/{MIN_STABLE_EVALS} evals")
-                return name
+        # FIX Bug #11: pick model with fewest evals, break ties randomly
+        under_eval = [(name, eval_runs) for name, _, _, eval_runs in models if eval_runs < MIN_STABLE_EVALS]
+        if under_eval:
+            min_evals = min(e for _, e in under_eval)
+            candidates = [name for name, e in under_eval if e == min_evals]
+            chosen = random.choice(candidates)
+            logger.info(f"Warm-up exploration: {chosen} ({min_evals}/{MIN_STABLE_EVALS} evals)")
+            return chosen
 
         # ── ε-Greedy: 10% random exploration ──
         if random.random() < EPSILON:
