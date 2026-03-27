@@ -4,9 +4,10 @@ import subprocess
 import os
 import glob
 from datetime import datetime
+from pathlib import Path
 
-# CONFIG
-WORKSPACE = "/home/maximilian-wruhs/Dokumente/Projekt GZMO + Obolus/AOS"
+# FIX Bug #22: resolve from script location, not hardcoded path
+WORKSPACE = str(Path(__file__).parent.parent.parent.resolve())
 TOKEN_WARNING_THRESHOLD = 50    # 50k tokens
 TOKEN_CRITICAL_THRESHOLD = 150  # 150k tokens
 

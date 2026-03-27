@@ -81,8 +81,11 @@ def log_inference(model: str, energy_joules: float, eval_score: float = None):
         else:
             old_q, old_j, eval_runs, total_runs = row
 
-            # EMA for energy (always updated)
-            new_j = (ALPHA * energy_joules) + ((1 - ALPHA) * old_j)
+            # EMA for energy (skip when 0 = streaming/unmeasurable) — FIX #20
+            if energy_joules > 0:
+                new_j = (ALPHA * energy_joules) + ((1 - ALPHA) * old_j)
+            else:
+                new_j = old_j  # Keep existing average
 
             # EMA for quality (only when judge ran)
             new_q = old_q

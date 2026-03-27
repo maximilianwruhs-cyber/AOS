@@ -259,11 +259,14 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
                     async for chunk in response.aiter_bytes():
                         yield chunk
 
-        # For streaming: measure energy until first chunk (approximation)
-        energy = meter.stop()
-        await schedule_cooldown()  # FIX Bug #3: await
-        # Streaming can't easily capture full response — log energy only
-        background_tasks.add_task(shadow_evaluation, prompt_text, "[streaming]", target_model, complexity, energy["joules"])
+        # FIX Bug #20: Energy can't be measured for streaming (meter.stop() here
+        # would measure 0J since inference hasn't started yet). Skip energy.
+        meter.stop()  # cleanup only
+        await schedule_cooldown()
+        background_tasks.add_task(
+            shadow_evaluation, prompt_text, "[streaming]",
+            target_model, complexity, 0.0  # 0 = unmeasurable
+        )
         return StreamingResponse(forward_stream(), media_type="text/event-stream")
     else:
         async with httpx.AsyncClient(timeout=300.0) as client:
