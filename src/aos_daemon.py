@@ -242,7 +242,7 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
             log("Swap failed. Proceeding with current model.")
             
     # Modify payload model to match the hardware backend
-    payload["model"] = CURRENT_MODEL
+    payload["model"] = CURRENT_MODEL or target_model  # FIX #29: fallback if startup swap failed
 
     # 3. Start energy measurement BEFORE inference
     meter = EnergyMeter()

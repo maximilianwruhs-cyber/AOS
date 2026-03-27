@@ -43,8 +43,8 @@ autoinstall:
       - ln -sf /opt/aos/repo/aos-cli.py /usr/local/bin/aos
       - chmod +x /opt/aos/repo/aos-cli.py
 
-      # Run the light Ansible playbook (systemd services, RAPL, etc.)
-      - su - aos -c "cd /opt/aos/repo && /opt/aos/.venv/bin/ansible-playbook install_light.yml -c local"
+      # FIX #33: use system ansible (apt-installed), not venv path
+      - su - aos -c "cd /opt/aos/repo && ansible-playbook install_light.yml -c local"
 
   # ─── Auto-reboot after installation ─────────────────────────
   shutdown: reboot
