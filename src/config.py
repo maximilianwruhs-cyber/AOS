@@ -69,3 +69,17 @@ INITIAL_AGENT_BALANCE = float(os.getenv("AOS_INITIAL_BALANCE", "100.0"))
 # ─── API Auth ─────────────────────────────────────────────────────────────────
 AOS_API_KEY = os.getenv("AOS_API_KEY", None)  # None = auth disabled (dev mode)
 
+# ─── RAG Pipeline ─────────────────────────────────────────────────────────────
+INGRESS_DIR = DATA_DIR / "ingress"
+INGRESS_DIR.mkdir(exist_ok=True)
+
+PGVECTOR_HOST = os.getenv("PGVECTOR_HOST", "localhost")
+PGVECTOR_PORT = int(os.getenv("PGVECTOR_PORT", "5432"))
+PGVECTOR_DB = os.getenv("PGVECTOR_DB", "aos_rag")
+PGVECTOR_USER = os.getenv("PGVECTOR_USER", "aos")
+PGVECTOR_PASSWORD = os.getenv("PGVECTOR_PASSWORD", "aos_local_dev")
+PGVECTOR_CONN_STRING = f"postgresql://{PGVECTOR_USER}:{PGVECTOR_PASSWORD}@{PGVECTOR_HOST}:{PGVECTOR_PORT}/{PGVECTOR_DB}"
+
+RAG_EMBED_MODEL = os.getenv("RAG_EMBED_MODEL", "nomic-embed-text")
+RAG_LLM_MODEL = os.getenv("RAG_LLM_MODEL", "llama3")
+

@@ -92,6 +92,96 @@
       when: deploy_mode == 'online'
 
     # ============================================================
+    # 1.6 DOCKER & RAG INFRASTRUCTURE
+    # ============================================================
+    - name: 🐳 Install Docker prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - gnupg
+          - lsb-release
+        state: present
+      when: deploy_mode == 'online'
+
+    - name: 🐳 Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes
+        chmod a+r /etc/apt/keyrings/docker.gpg
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🐳 Add Docker repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🐳 Install Docker CE & Compose plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🐳 Add user to docker group
+      user:
+        name: "{{ real_user }}"
+        groups: docker
+        append: yes
+      ignore_errors: yes
+
+    - name: 📦 Install LiteParse (document parser)
+      npm:
+        name: "@llamaindex/liteparse"
+        global: yes
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    - name: 🗄️ Start pgvector Postgres container
+      shell: |
+        docker compose -f {{ aos_dir }}/docker-compose.yml up -d
+      become_user: "{{ real_user }}"
+      ignore_errors: yes
+      when: deploy_mode == 'online'
+
+    # ============================================================
+    # 1.7 eGPU SWITCHER (OPTIONAL — Thunderbolt eGPU Support)
+    # ============================================================
+    - name: 🔌 Detect Thunderbolt controller
+      shell: "ls /sys/bus/thunderbolt/devices/ 2>/dev/null | head -1"
+      register: thunderbolt_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: 🔌 Check if egpu-switcher is already installed
+      stat:
+        path: /usr/bin/egpu-switcher
+      register: egpu_stat
+
+    - name: 🔌 Download egpu-switcher binary
+      get_url:
+        url: "https://github.com/hertg/egpu-switcher/releases/latest/download/egpu-switcher-amd64"
+        dest: "/usr/bin/egpu-switcher"
+        mode: '0755'
+      when:
+        - deploy_mode == 'online'
+        - not egpu_stat.stat.exists
+      ignore_errors: yes
+
+    - name: 🔌 Enable egpu-switcher auto-switch service
+      shell: egpu-switcher enable
+      when:
+        - thunderbolt_check.stdout | length > 0
+        - not egpu_stat.stat.exists
+      ignore_errors: yes
+
+    # ============================================================
     # 2. AI ENGINE LAYER (OLLAMA & LM STUDIO)
     # ============================================================
     - name: 🧠 Check if Ollama is installed

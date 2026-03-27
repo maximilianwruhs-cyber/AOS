@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "google-workspace": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "google-workspace-mcp",
+        "serve"
+      ]
+    },
+    "notebooklm": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "notebooklm-mcp-cli",
+        "notebooklm-mcp"
+      ]
+    },
+    "lm-studio": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "fastmcp",
+        "--with",
+        "httpx",
+        "/home/maximilian-wruhs/.gemini/antigravity/lm_studio_mcp.py"
+      ]
+    }
+  }
+}

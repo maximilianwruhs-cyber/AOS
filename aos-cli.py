@@ -66,7 +66,8 @@ def ask(prompt: str):
 def main():
     if len(sys.argv) < 2:
         print("Usage: aos <command> [args]")
-        print("Commands: health, hosts, switch <key>, models, ask <prompt>, bench, leaderboard")
+        print("Commands: health, hosts, switch <key>, models, ask <prompt>,")
+        print("          ingest <file>, query <question>, bench, leaderboard")
         sys.exit(1)
 
     cmd = sys.argv[1]
@@ -97,6 +98,22 @@ def main():
         script_dir = Path(os.path.realpath(__file__)).parent  # FIX Bug #4: resolve symlinks
         runner = str(script_dir / "src" / "telemetry_engine" / "runner.py")
         subprocess.run([sys.executable, runner, "compare"])
+    elif cmd == "ingest":
+        if len(sys.argv) < 3:
+            print("Usage: aos ingest <file-path>")
+            sys.exit(1)
+        import subprocess
+        script_dir = Path(os.path.realpath(__file__)).parent
+        rag = str(script_dir / "src" / "rag_engine.py")
+        subprocess.run([sys.executable, rag, "ingest", sys.argv[2]])
+    elif cmd == "query":
+        if len(sys.argv) < 3:
+            print('Usage: aos query "your question"')
+            sys.exit(1)
+        import subprocess
+        script_dir = Path(os.path.realpath(__file__)).parent
+        rag = str(script_dir / "src" / "rag_engine.py")
+        subprocess.run([sys.executable, rag, "query", " ".join(sys.argv[2:])])
     else:
         print(f"Unknown command: {cmd}")
         sys.exit(1)

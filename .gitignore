@@ -5,7 +5,9 @@ final_proof.log
 # Runtime artifacts
 .env
 .venv/
-data/
+data/*.db
+data/*.json
+data/pgdata/
 *.db
 
 # ISO build workspace

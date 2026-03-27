@@ -59,6 +59,15 @@ aos leaderboard
 ```
 Compares all previous benchmark results, ranked by intelligence-per-watt.
 
+### eGPU Switcher (optional, Thunderbolt machines only)
+```bash
+sudo egpu-switcher setup       # Interactive GPU selection
+sudo egpu-switcher enable      # Enable auto-switch on boot
+sudo egpu-switcher disable     # Disable auto-switch
+egpu-switcher status           # Show current GPU config
+```
+Manages external GPU switching for machines with Thunderbolt eGPU enclosures. Installed automatically when a Thunderbolt controller is detected.
+
 ## API Endpoints
 
 | Endpoint | Method | Auth | Description |
@@ -68,6 +77,20 @@ Compares all previous benchmark results, ranked by intelligence-per-watt.
 | `/v1/hosts/switch` | POST | Yes | Switch backend |
 | `/v1/models` | GET | No | List models |
 | `/v1/chat/completions` | POST | Yes | Run inference |
+| `/v1/rag/ingest` | POST | Yes | Ingest a document into the RAG database |
+| `/v1/rag/query` | POST | Yes | Query the RAG database with natural language |
+
+### Ingest a Document (RAG)
+```bash
+aos ingest <file-path>
+```
+Parses a local PDF/document via LiteParse, embeds it with Ollama, and stores it in the local pgvector database.
+
+### Query the Knowledge Base (RAG)
+```bash
+aos query "Your question here"
+```
+Searches the local pgvector database and generates an answer using the local LLM.
 
 ## Authentication
 

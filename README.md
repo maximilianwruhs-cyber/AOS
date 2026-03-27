@@ -10,7 +10,17 @@ AgenticOS (AOS) is not a traditional operating system. It is a sovereign artific
 - **GZMO (Chief of Staff)**: The sovereign brain that evaluates logs, runs Obolus, and delegates to the cloud only when the absolute intelligence ceiling of local hardware is breached.
 
 ## Installation
-If you are starting with a completely empty Ubuntu 24.04 LTS machine, you only need to run:
+
+On a fresh **Ubuntu 24.04 LTS** machine, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/maximilianwruhs-cyber/AOS/main/bootstrap.sh | bash
+```
+
+This single command will install all dependencies, clone the repo, provision AI engines (Ollama, LM Studio), start the RAG database, pull models, and verify everything is healthy.
+
+<details>
+<summary>Manual Installation (fallback)</summary>
 
 ```bash
 sudo apt update && sudo apt install -y ansible git
@@ -19,9 +29,11 @@ cd AOS
 ansible-playbook install.yml -K
 ```
 
-Ansible will provision all dependencies, unlock hardware sensors, download LM Studio and Ollama, setup Python virtual environments, and permanently enroll the `aos-core` daemon into `systemd`.
+</details>
 
 ## Components
+- `bootstrap.sh`: One-command setup for fresh Ubuntu machines.
 - `install.yml`: The Ansible deployment orchestrator.
 - `src/aos_daemon.py`: The Chief of Staff lifecycle script.
-- `src/tools/`: Integration bindings for LM Studio APIs and Hardware Telemetry execution.
+- `src/rag_engine.py`: Local RAG pipeline (LiteParse + Ollama + pgvector).
+- `src/tools/`: Integration bindings for LM Studio APIs and Hardware Telemetry.
