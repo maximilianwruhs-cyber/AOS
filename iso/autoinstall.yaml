@@ -1,0 +1,50 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  # ─── Locale & Keyboard ───────────────────────────────────────
+  locale: de_AT.UTF-8
+  keyboard:
+    layout: de
+
+  # ─── User Identity ──────────────────────────────────────────
+  identity:
+    hostname: aos-gateway
+    username: aos
+    # Default password: "0815" — change after first login!
+    # Generate new hash: mkpasswd -m sha-512 "YourPassword"
+    password: "$6$rounds=4096$RandomSalt$HashedPasswordHere"
+
+  # ─── SSH ────────────────────────────────────────────────────
+  ssh:
+    install-server: false  # Already installed in SquashFS chroot
+    allow-pw: true         # Allow password auth for initial setup
+    # Uncomment and add your public key for key-only auth:
+    # authorized-keys:
+    #   - "ssh-ed25519 AAAAC3... your-admin-key"
+
+  # ─── Storage ────────────────────────────────────────────────
+  storage:
+    layout:
+      name: direct  # Wipes and uses the entire primary disk
+
+  # ─── Post-Install (runs on FIRST BOOT of installed system) ──
+  user-data:
+    runcmd:
+      # FIX: Ubuntu 24.04 AppArmor blocks user namespaces
+      # (Chrome, Electron apps, AppImages crash without this)
+      - sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - echo "kernel.apparmor_restrict_unprivileged_userns=0" > /etc/sysctl.d/20-apparmor-userns.conf
+
+      # Set ownership of pre-baked directories
+      - chown -R aos:aos /opt/aos /opt/lm-studio
+
+      # Symlink AOS CLI globally
+      - ln -sf /opt/aos/repo/aos-cli.py /usr/local/bin/aos
+      - chmod +x /opt/aos/repo/aos-cli.py
+
+      # Run the light Ansible playbook (systemd services, RAPL, etc.)
+      - su - aos -c "cd /opt/aos/repo && /opt/aos/.venv/bin/ansible-playbook install_light.yml -c local"
+
+  # ─── Auto-reboot after installation ─────────────────────────
+  shutdown: reboot
