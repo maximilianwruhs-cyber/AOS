@@ -332,7 +332,7 @@
 
     - name: 🔌 Deploy MCP server configuration
       template:
-        src: "{{ aos_dir }}/AddOns/mcp_config.json"
+        src: "{{ aos_dir }}/config/mcp_config.json"
         dest: "/home/{{ real_user }}/.gemini/settings.json"
         owner: "{{ real_user }}"
         mode: '0644'
@@ -398,7 +398,7 @@
 
     - name: 🔗 Symlink AOS CLI for global use
       file:
-        src: "{{ aos_dir }}/aos-cli.py"
+        src: "{{ aos_dir }}/src/aos/cli.py"
         dest: "/usr/local/bin/aos"
         state: link
         force: yes
@@ -417,8 +417,8 @@
           
           [Service]
           User={{ real_user }}
-          WorkingDirectory={{ aos_dir }}/src
-          ExecStart={{ aos_dir }}/.venv/bin/python3 {{ aos_dir }}/src/aos_daemon.py
+          WorkingDirectory={{ aos_dir }}
+          ExecStart={{ aos_dir }}/.venv/bin/python3 -m aos.gateway.app
           Restart=on-failure
           RestartSec=10
           Environment="PYTHONUNBUFFERED=1"

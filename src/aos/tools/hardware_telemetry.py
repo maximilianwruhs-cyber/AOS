@@ -8,8 +8,7 @@ from pathlib import Path
 import asyncio  # FIX #18: run_benchmark is async
 
 # Add src to path so we can import telemetry_engine natively
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from telemetry_engine.runner import run_benchmark
+from aos.telemetry.runner import run_benchmark
 
 def run_telemetry(model_name: str, suite: str = "math"):
     print(f"⚡ [TELEMETRY] Analyzing hardware efficiency for {model_name}...")

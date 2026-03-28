@@ -1,0 +1,3 @@
+sudo apt update && sudo apt install -y ansible git
+git clone https://github.com/maximilianwruhs-cyber/AOS.git
+cd AOS && ansible-playbook install.yml -K

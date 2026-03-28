@@ -19,7 +19,7 @@ from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 
-from config import (
+from aos.config import (
     PGVECTOR_CONN_STRING,
     PGVECTOR_DB,
     PGVECTOR_HOST,

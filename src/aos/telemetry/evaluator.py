@@ -7,9 +7,8 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import config
+import aos.config as config
 # FIX Bug #8: SandboxExecutor imported lazily inside score_code() to prevent
 # hard crash when simulation/ module is not present on edge nodes
 

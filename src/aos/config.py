@@ -8,17 +8,19 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent.parent / ".env")  # FIX Bug #10: project root, not src/
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 except ImportError:
     pass  # python-dotenv is optional; env vars still work
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+# config.py lives at src/aos/config.py → parents[2] = AOS/ (project root)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = PROJECT_ROOT / "core_identity"
 DATA_DIR = PROJECT_ROOT / "data"
-TOOLS_DIR = PROJECT_ROOT / "src" / "tools"
+TOOLS_DIR = PROJECT_ROOT / "src" / "aos" / "tools"
 DOCS_DIR = PROJECT_ROOT / "docs"
-REMOTE_HOSTS_FILE = Path(__file__).parent / "remote_hosts.json"
+CONFIG_DIR = PROJECT_ROOT / "config"
+REMOTE_HOSTS_FILE = CONFIG_DIR / "remote_hosts.json"
 
 # Ensure data dir exists at runtime
 DATA_DIR.mkdir(exist_ok=True)
@@ -82,4 +84,3 @@ PGVECTOR_CONN_STRING = f"postgresql://{PGVECTOR_USER}:{PGVECTOR_PASSWORD}@{PGVEC
 
 RAG_EMBED_MODEL = os.getenv("RAG_EMBED_MODEL", "nomic-embed-text")
 RAG_LLM_MODEL = os.getenv("RAG_LLM_MODEL", "llama3")
-

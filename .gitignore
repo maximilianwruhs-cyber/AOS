@@ -1,19 +1,28 @@
 __pycache__/
 *.pyc
-final_proof.log
+*.pyo
 
 # Runtime artifacts
 .env
 .venv/
+*.egg-info/
+dist/
+build/
+
+# Data (runtime-generated)
 data/*.db
 data/*.json
 data/pgdata/
-*.db
+!data/.gitkeep
+!data/ingress/.gitkeep
 
 # ISO build workspace
-iso/iso_work/
+deploy/iso/iso_work/
 *.iso
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Debug logs
+*.log
