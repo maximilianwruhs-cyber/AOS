@@ -104,8 +104,8 @@
           
           [Service]
           User={{ real_user }}
-          WorkingDirectory={{ aos_dir }}/src
-          ExecStart={{ venv_dir }}/bin/python3 {{ aos_dir }}/src/aos_daemon.py
+          WorkingDirectory={{ aos_dir }}
+          ExecStart={{ venv_dir }}/bin/python3 -m aos.gateway.app
           Restart=on-failure
           RestartSec=10
           Environment="PYTHONUNBUFFERED=1"
