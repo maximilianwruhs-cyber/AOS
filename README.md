@@ -14,10 +14,8 @@ AgenticOS (AOS) is not a traditional operating system. It is a sovereign artific
 On a fresh **Ubuntu 24.04 LTS** machine, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/maximilianwruhs-cyber/AOS/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/maximilianwruhs-cyber/AOS/main/deploy/bootstrap.sh | bash
 ```
-
-This single command will install all dependencies, clone the repo, provision AI engines (Ollama, LM Studio), start the RAG database, pull models, and verify everything is healthy.
 
 <details>
 <summary>Manual Installation (fallback)</summary>
@@ -26,14 +24,57 @@ This single command will install all dependencies, clone the repo, provision AI 
 sudo apt update && sudo apt install -y ansible git
 git clone https://github.com/maximilianwruhs-cyber/AOS.git
 cd AOS
-ansible-playbook install.yml -K
+ansible-playbook deploy/ansible/install.yml -K
 ```
 
 </details>
 
+## Development Setup
+
+```bash
+git clone https://github.com/maximilianwruhs-cyber/AOS.git
+cd AOS
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .            # Core gateway
+pip install -e '.[rag]'     # + RAG pipeline
+```
+
+## Project Structure
+
+```
+AOS/
+├── src/aos/                    # Python package
+│   ├── gateway/                # FastAPI reactive inference router
+│   │   ├── app.py              # Application entrypoint & lifespan
+│   │   ├── auth.py             # Bearer token authentication
+│   │   ├── routes.py           # API route handlers & shadow evaluator
+│   │   └── triage.py           # Prompt complexity classification
+│   ├── telemetry/              # Energy-aware benchmarking & evaluation
+│   ├── tools/                  # Hardware telemetry, VRAM manager, watchdog
+│   ├── simulation/             # Sandboxed code execution
+│   ├── cli.py                  # CLI wrapper for the gateway API
+│   ├── config.py               # Centralized configuration
+│   └── rag_engine.py           # Local RAG pipeline (LiteParse + pgvector)
+├── config/                     # Runtime configuration files
+│   ├── remote_hosts.json       # LLM backend host definitions
+│   └── mcp_config.json         # MCP server configuration
+├── core_identity/              # Agent persona definitions (Markdown)
+├── deploy/                     # Deployment & provisioning
+│   ├── ansible/                # Ansible playbooks
+│   ├── iso/                    # Custom Ubuntu ISO builder
+│   └── bootstrap.sh            # One-command setup script
+├── data/                       # Runtime data (gitignored)
+├── docs/                       # Documentation
+├── tests/                      # Test suite (coming soon)
+├── _archive/                   # Legacy/archived files
+├── pyproject.toml              # Python package definition
+├── docker-compose.yml          # pgvector database
+└── requirements.txt            # Pinned dependencies
+```
+
 ## Components
-- `bootstrap.sh`: One-command setup for fresh Ubuntu machines.
-- `install.yml`: The Ansible deployment orchestrator.
-- `src/aos_daemon.py`: The Chief of Staff lifecycle script.
-- `src/rag_engine.py`: Local RAG pipeline (LiteParse + Ollama + pgvector).
-- `src/tools/`: Integration bindings for LM Studio APIs and Hardware Telemetry.
+- `deploy/bootstrap.sh`: One-command setup for fresh Ubuntu machines.
+- `deploy/ansible/install.yml`: The Ansible deployment orchestrator.
+- `src/aos/gateway/app.py`: The Chief of Staff lifecycle script.
+- `src/aos/rag_engine.py`: Local RAG pipeline (LiteParse + Ollama + pgvector).
+- `src/aos/tools/`: Integration bindings for LM Studio APIs and Hardware Telemetry.

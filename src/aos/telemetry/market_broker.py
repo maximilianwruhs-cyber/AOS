@@ -25,7 +25,7 @@ def _get_price():
     global _awattar_price_fn
     if _awattar_price_fn is None:
         try:
-            from telemetry_engine.awattar import get_current_price_c_kwh
+            from aos.telemetry.awattar import get_current_price_c_kwh
             _awattar_price_fn = get_current_price_c_kwh
         except ImportError:
             _awattar_price_fn = lambda: None

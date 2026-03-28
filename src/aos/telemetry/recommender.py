@@ -9,9 +9,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-import config
-from telemetry_engine.awattar import get_current_price_c_kwh, get_price_or_default
+import aos.config as config
+from aos.telemetry.awattar import get_current_price_c_kwh, get_price_or_default
 
 
 # Cloud API reference costs (USD per 1M tokens, approximate 2026 pricing)

@@ -12,14 +12,13 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import config
+import aos.config as config
 import httpx
-from telemetry_engine.task_suite import get_suite, list_suites
-from telemetry_engine.evaluator import score_task
-from telemetry_engine.energy_meter import EnergyMeter
-from telemetry_engine.awattar import get_price_or_default
+from aos.telemetry.task_suite import get_suite, list_suites
+from aos.telemetry.evaluator import score_task
+from aos.telemetry.energy_meter import EnergyMeter
+from aos.telemetry.awattar import get_price_or_default
 
 
 async def infer(client: httpx.AsyncClient, model: str, prompt: str,
