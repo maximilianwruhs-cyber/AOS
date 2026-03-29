@@ -235,3 +235,92 @@ async def chat_completions(request: Request, background_tasks: BackgroundTasks, 
             except Exception as e:
                 meter.stop()
                 return JSONResponse(status_code=500, content={"error": f"Backend failed: {e}"})
+
+
+# ─── Benchmark Endpoint ──────────────────────────────────────────────────────
+async def benchmark_run(request: Request):
+    """Run an Obolus benchmark suite against a model via the gateway."""
+    from aos.telemetry.runner import run_benchmark, save_results
+    from aos.telemetry.task_suite import list_suites
+
+    payload = await request.json()
+    suite = payload.get("suite", "full")
+    model = payload.get("model", CURRENT_MODEL)
+
+    if not model:
+        return JSONResponse(status_code=400, content={
+            "error": "No model specified and none currently loaded."
+        })
+
+    available_suites = list_suites()
+    if suite not in available_suites:
+        return JSONResponse(status_code=400, content={
+            "error": f"Unknown suite: {suite}. Available: {list(available_suites.keys())}"
+        })
+
+    try:
+        log(f"Benchmark started: model={model}, suite={suite}")
+        summary = await run_benchmark(
+            model=model,
+            suite=suite,
+            ollama_url=LM_STUDIO_URL,
+            verbose=True
+        )
+        save_results(summary)
+        log(f"Benchmark complete: z={summary['z_score']:.4f}, quality={summary['avg_quality']:.2%}")
+
+        return JSONResponse(content={
+            "status": "completed",
+            "model": summary["model"],
+            "suite": summary["suite"],
+            "score": summary["avg_quality"],
+            "z_score": summary["z_score"],
+            "total_joules": summary["total_joules"],
+            "obl_cost": summary["obl_cost"],
+            "tokens_per_second": summary["tokens_per_second"],
+            "scores_by_type": summary["scores_by_type"],
+        })
+    except Exception as e:
+        log(f"Benchmark failed: {e}")
+        return JSONResponse(status_code=500, content={"error": f"Benchmark failed: {e}"})
+
+
+# ─── Leaderboard Endpoint ────────────────────────────────────────────────────
+async def leaderboard():
+    """Return ranked model metrics from the local DB."""
+    import sqlite3
+    from aos.telemetry.market_broker import DB_PATH, init_db
+
+    init_db()
+
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT model_name, z_score, avg_quality, avg_joules, eval_runs, total_runs "
+                "FROM model_metrics ORDER BY z_score DESC"
+            ).fetchall()
+
+        data = []
+        for row in rows:
+            avg_j = row["avg_joules"]
+            data.append({
+                "model_id": row["model_name"],
+                "z_score": round(row["z_score"], 6),
+                "quality_score": round(row["avg_quality"], 4),
+                "joules_per_request": round(avg_j, 2),
+                "eval_runs": row["eval_runs"],
+                "total_runs": row["total_runs"],
+                "efficiency_class": (
+                    "A+" if row["z_score"] > 0.8
+                    else "A" if row["z_score"] > 0.5
+                    else "B" if row["z_score"] > 0.2
+                    else "C"
+                ),
+            })
+
+        return JSONResponse(content={"data": data})
+    except Exception as e:
+        log(f"Leaderboard query failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
