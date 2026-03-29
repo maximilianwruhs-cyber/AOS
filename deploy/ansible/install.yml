@@ -274,7 +274,7 @@
       when: deploy_mode == 'online'
 
     # ============================================================
-    # 4. AGENTIC TOOLING (Antigravity, Gemini CLI, MCP Servers)
+    # 4. AGENTIC TOOLING (Antigravity, VS Codium, Continue.dev, Gemini CLI, MCP Servers)
     # ============================================================
 
     # --- 4.1 VS Code + Antigravity ---
@@ -323,6 +323,20 @@
       ignore_errors: yes
 
     # --- 4.3 MCP Server Configuration ---
+    - name: 🔌 Create AOS shared config directory
+      file:
+        path: "/home/{{ real_user }}/.config/aos"
+        state: directory
+        owner: "{{ real_user }}"
+        mode: '0755'
+
+    - name: 🔌 Deploy LM Studio MCP bridge script
+      copy:
+        src: "{{ aos_dir }}/config/lm_studio_mcp.py"
+        dest: "/home/{{ real_user }}/.config/aos/lm_studio_mcp.py"
+        owner: "{{ real_user }}"
+        mode: '0755'
+
     - name: 🔌 Create Gemini config directory
       file:
         path: "/home/{{ real_user }}/.gemini"
@@ -330,7 +344,7 @@
         owner: "{{ real_user }}"
         mode: '0755'
 
-    - name: 🔌 Deploy MCP server configuration
+    - name: 🔌 Deploy MCP config for Antigravity
       template:
         src: "{{ aos_dir }}/config/mcp_config.json"
         dest: "/home/{{ real_user }}/.gemini/settings.json"
@@ -402,6 +416,67 @@
         dest: "/usr/local/bin/aos"
         state: link
         force: yes
+      ignore_errors: yes
+
+    # ============================================================
+    # 4.5 VS CODIUM + CONTINUE.DEV (Customer-Facing Editor)
+    # ============================================================
+    - name: 🖥️ Add VS Codium GPG key
+      shell: |
+        wget -qO - https://gitlab.com/nicedude/vscodium/-/raw/master/KEYS/pub.gpg \
+          | gpg --dearmor -o /usr/share/keyrings/vscodium-archive-keyring.gpg --yes
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🖥️ Add VS Codium apt repository
+      copy:
+        dest: /etc/apt/sources.list.d/vscodium.list
+        content: |
+          deb [signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg] https://download.vscodium.com/debs vscodium main
+      when: deploy_mode == 'online'
+
+    - name: 🖥️ Install VS Codium
+      apt:
+        name: codium
+        state: present
+        update_cache: yes
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🤖 Install Continue.dev extension
+      shell: codium --install-extension Continue.continue --force
+      become_user: "{{ real_user }}"
+      when: deploy_mode == 'online'
+      ignore_errors: yes
+
+    - name: 🔌 Create VS Codium user config directory
+      file:
+        path: "/home/{{ real_user }}/.config/VSCodium/User"
+        state: directory
+        owner: "{{ real_user }}"
+        mode: '0755'
+
+    - name: 🔌 Mirror MCP config to VS Codium
+      template:
+        src: "{{ aos_dir }}/config/mcp_config.json"
+        dest: "/home/{{ real_user }}/.config/VSCodium/User/mcp.json"
+        owner: "{{ real_user }}"
+        mode: '0644'
+      ignore_errors: yes
+
+    - name: 🤖 Create Continue.dev config directory
+      file:
+        path: "/home/{{ real_user }}/.continue"
+        state: directory
+        owner: "{{ real_user }}"
+        mode: '0755'
+
+    - name: 🤖 Deploy Continue.dev configuration (LM Studio backend)
+      copy:
+        src: "{{ aos_dir }}/config/continue_config.json"
+        dest: "/home/{{ real_user }}/.continue/config.json"
+        owner: "{{ real_user }}"
+        mode: '0644'
       ignore_errors: yes
 
     # ============================================================

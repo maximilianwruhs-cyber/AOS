@@ -7,7 +7,7 @@ import requests
 import sys
 from pathlib import Path
 
-from config import ACTIVE_BACKEND_URL
+from aos.config import ACTIVE_BACKEND_URL
 
 
 def swap_model(target_model_name: str, backend_url: str = None,

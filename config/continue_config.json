@@ -1,0 +1,15 @@
+{
+  "models": [
+    {
+      "title": "AOS Local (LM Studio)",
+      "provider": "lmstudio",
+      "model": "autodetect"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "AOS Autocomplete",
+    "provider": "lmstudio",
+    "model": "autodetect"
+  },
+  "allowAnonymousTelemetry": false
+}

@@ -24,7 +24,7 @@
         "fastmcp",
         "--with",
         "httpx",
-        "/home/{{ real_user }}/.gemini/antigravity/lm_studio_mcp.py"
+        "/home/{{ real_user }}/.config/aos/lm_studio_mcp.py"
       ]
     }
   }
