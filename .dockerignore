@@ -1,0 +1,33 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Tests & CI
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Git
+.git/
+.gitignore
+
+# Deploy scripts (not needed in container)
+deploy/
+
+# Documentation
+*.md
+docs/
+
+# OS
+.DS_Store
+Thumbs.db

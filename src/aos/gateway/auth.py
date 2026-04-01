@@ -1,18 +1,10 @@
 """
-AOS Gateway — Authentication Middleware
-Bearer Token auth with constant-time comparison.
+AOS Gateway — Auth (BACKWARD COMPATIBILITY SHIM)
+Real implementation moved to aos.core.auth.
+This file will be deleted in Phase 4 of the DDD migration.
 """
-import hmac
-from fastapi import Header, HTTPException
+from aos.core.auth import verify_token  # noqa: F401
 
-from aos.config import AOS_API_KEY
-
-
-async def verify_token(authorization: str = Header(None)):
-    """Bearer Token auth. Skipped if AOS_API_KEY is not set (dev mode)."""
-    if not AOS_API_KEY:
-        return
-    expected = f"Bearer {AOS_API_KEY}"
-    # FIX #47: constant-time compare to prevent timing attacks
-    if not authorization or not hmac.compare_digest(authorization, expected):
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+# Legacy import support
+from aos.core.settings import get_settings as _get_settings
+AOS_API_KEY = _get_settings().aos_api_key

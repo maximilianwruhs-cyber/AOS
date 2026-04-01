@@ -19,8 +19,13 @@
       "name": "AOS Keller Ollama",
       "url": "http://192.168.31.138:11434/v1",
       "description": "Remote Ollama on the basement AOS node"
+    },
+    "bitnet-local": {
+      "name": "Local BitNet 1.58b",
+      "url": "http://127.0.0.1:8080/v1",
+      "description": "AVX2 CPU Ternary Inference Server"
     }
   },
-  "active_host": "local",
+  "active_host": "aos-keller",
   "fallback_host": "ollama-local"
 }
